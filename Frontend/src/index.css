@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", system-ui, -apple-system, sans-serif;
+  
+  --color-primary: #16A34A;
+  --color-primary-hover: #15803D;
+  --color-secondary: #0EA5E9;
+  --color-bg-dark: #0F172A;
+  --color-card-dark: #1E293B;
+  --color-card-hover: #2E3E56;
+  --color-muted-text: #94A3B8;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-success: #10B981;
+}
+
+/* Custom styles for high-end feel */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-dark);
+  color: white;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism card styles */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(46, 62, 86, 0.85);
+  border-color: rgba(14, 165, 233, 0.4);
+  box-shadow: 0 10px 30px -10px rgba(14, 165, 233, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2E3E56;
+}
+
+/* Pulsing accent glows */
+.accent-glow-primary {
+  box-shadow: 0 0 25px -5px rgba(22, 163, 74, 0.25);
+}
+
+.accent-glow-secondary {
+  box-shadow: 0 0 25px -5px rgba(14, 165, 233, 0.25);
+}
+
+/* Smooth gradients */
+.bg-gradient-primary-to-secondary {
+  background: linear-gradient(135deg, #16A34A 0%, #0EA5E9 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #34D399 0%, #38BDF8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+

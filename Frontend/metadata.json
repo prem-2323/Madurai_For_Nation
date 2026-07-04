@@ -1,0 +1,6 @@
+{
+  "name": "CleanAir AI",
+  "description": "AI-Powered Hyperlocal Pollution Detection & Municipal Response Platform",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
