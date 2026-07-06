@@ -4,7 +4,7 @@ import * as Icons from 'lucide-react';
 
 interface StatCardProps {
   title: string;
-  value: string | number;
+  value: string | number | React.ReactNode;
   change?: string;
   isPositive?: boolean;
   iconName: string;
@@ -68,9 +68,9 @@ export const StatCard: React.FC<StatCardProps> = ({
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-text">
             {title}
           </span>
-          <h3 className="text-3xl font-extrabold text-white tracking-tight">
+          <div className="text-3xl font-extrabold text-white tracking-tight">
             {value}
-          </h3>
+          </div>
         </div>
         <div className={`p-3 rounded-xl ${selectedColor.bg} ${selectedColor.text}`}>
           <IconComponent className="w-6 h-6" />

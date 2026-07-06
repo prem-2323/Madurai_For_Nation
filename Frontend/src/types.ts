@@ -14,6 +14,27 @@ export interface AirQualityData {
   updatedAt?: string;
 }
 
+export interface AQIPrediction {
+  currentAQI: number;
+  currentPM25: number;
+  predictedAQI: number;
+  risk: 'Good' | 'Fair' | 'Moderate' | 'Poor' | 'Very Poor';
+  trend: 'Increasing' | 'Improving' | 'Stable';
+  trendArrow: '⬆' | '⬇' | '➡';
+  confidence: number;
+  reason: string;
+  inputs?: {
+    temperature: number;
+    humidity: number;
+    windSpeed: number;
+    windDirection: number;
+    currentPM25: number;
+    nearbyCount: number;
+    criticalCount: number;
+    hotspotScore: number;
+  };
+}
+
 export interface AIAnalysisResult {
   pollutionDetected: boolean;
   pollutionType: string;

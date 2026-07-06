@@ -6,6 +6,16 @@ const AQI_LEVELS = {
   5: 'Very Poor',
 };
 
+const AQI_APPROX_VALUES = {
+  1: 25,
+  2: 75,
+  3: 125,
+  4: 175,
+  5: 250,
+};
+
+const DEFAULT_CENTER = { latitude: 9.9252, longitude: 78.1198 };
+
 function getAqiLevel(aqi) {
   return AQI_LEVELS[aqi] || 'Unknown';
 }
@@ -30,7 +40,8 @@ async function fetchAirPollution(lat, lon, apiKey) {
   const components = entry.components ?? {};
 
   return {
-    aqi,
+    aqi: AQI_APPROX_VALUES[aqi] || 0,
+    aqiIndex: aqi,
     aqiLevel: getAqiLevel(aqi),
     pm25: components.pm2_5 ?? 0,
     pm10: components.pm10 ?? 0,
@@ -45,13 +56,15 @@ async function fetchWeather(lat, lon, apiKey) {
   const response = await fetch(url);
 
   if (!response.ok) {
-    return { temperature: 0, humidity: 0 };
+    return { temperature: 0, humidity: 0, windSpeed: 0, windDirection: 0 };
   }
 
   const data = await response.json();
   return {
     temperature: data.main?.temp ?? 0,
     humidity: data.main?.humidity ?? 0,
+    windSpeed: data.wind?.speed ?? 0,
+    windDirection: data.wind?.deg ?? 0,
   };
 }
 
@@ -74,3 +87,4 @@ exports.getAirQuality = async (latitude, longitude) => {
 };
 
 exports.getAqiLevel = getAqiLevel;
+exports.DEFAULT_CENTER = DEFAULT_CENTER;
