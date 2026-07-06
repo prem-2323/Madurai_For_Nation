@@ -1,6 +1,19 @@
 export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 export type ReportStatus = 'Reported' | 'AI Analyzed' | 'Action Scheduled' | 'Resolved';
 
+export interface AirQualityData {
+  aqi: number;
+  aqiLevel: string;
+  pm25: number;
+  pm10: number;
+  co: number;
+  no2: number;
+  o3: number;
+  temperature: number;
+  humidity: number;
+  updatedAt?: string;
+}
+
 export interface AIAnalysisResult {
   pollutionDetected: boolean;
   pollutionType: string;
@@ -41,6 +54,7 @@ export interface PollutionReport {
   needsMunicipalAction?: boolean;
   possibleSource?: string;
   priority?: string;
+  airQuality?: AirQualityData;
 }
 
 export interface StatCardData {

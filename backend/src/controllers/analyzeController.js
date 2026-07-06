@@ -1,5 +1,6 @@
 const Report = require('../models/Report');
 const { analyzeImage } = require('../services/geminiVision');
+const { getAirQuality } = require('../services/aqiService');
 const { normalizeSeverity } = require('../utils/pollutionPrompt');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -21,11 +22,13 @@ exports.analyzePollution = async (req, res) => {
       return errorResponse(res, 'Valid latitude and longitude are required', 400);
     }
 
-    const analysis = await analyzeImage(
-      req.file.path,
-      req.file.mimetype,
-      description
-    );
+    const [analysis, airQuality] = await Promise.all([
+      analyzeImage(req.file.path, req.file.mimetype, description),
+      getAirQuality(latitude, longitude).catch((err) => {
+        console.warn('AQI fetch failed:', err.message);
+        return null;
+      }),
+    ]);
 
     const imagePath = `uploads/${req.file.filename}`;
     const locationLabel =
@@ -53,6 +56,15 @@ exports.analyzePollution = async (req, res) => {
       needsMunicipalAction: analysis.needsMunicipalAction,
       possibleSource: analysis.possibleSource,
       priority: analysis.priority,
+      AQI: airQuality?.aqi ?? 0,
+      aqiLevel: airQuality?.aqiLevel ?? '',
+      PM25: airQuality?.pm25 ?? 0,
+      PM10: airQuality?.pm10 ?? 0,
+      CO: airQuality?.co ?? 0,
+      NO2: airQuality?.no2 ?? 0,
+      O3: airQuality?.o3 ?? 0,
+      temperature: airQuality?.temperature ?? 0,
+      humidity: airQuality?.humidity ?? 0,
       status: 'pending'
     });
 
@@ -60,6 +72,7 @@ exports.analyzePollution = async (req, res) => {
       res,
       {
         analysis,
+        airQuality,
         report: {
           id: report._id,
           image: `/uploads/${req.file.filename}`,

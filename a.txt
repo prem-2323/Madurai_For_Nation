@@ -1,1 +1,11 @@
-login
+cd C:\Users\premk\OneDrive\Pictures\Madurai_For_Nation\backend
+npm install
+npm run start
+
+
+cd C:\Users\premk\OneDrive\Pictures\Madurai_For_Nation\Frontend
+npm install
+npm run dev
+
+cd C:\Users\premk\OneDrive\Pictures\Madurai_For_Nation\Frontend
+npx vite --host 0.0.0.0 --port 4173

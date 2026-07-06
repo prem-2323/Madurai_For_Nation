@@ -3,14 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { UploadCard } from '../components/UploadCard';
 import { AIResultCard } from '../components/AIResultCard';
+import { AirQualityCard } from '../components/AirQualityCard';
 import { MapPin, Navigation, Sparkles, Send, RefreshCw, AlertCircle } from 'lucide-react';
-import { PollutionReport, AIAnalysisResult, ReportStatus } from '../types';
+import { PollutionReport, AIAnalysisResult, ReportStatus, AirQualityData } from '../types';
 import { CATEGORIES } from '../data';
 import { analyzePollutionImage, API_BASE_URL, imageUrlToFile } from '../api/analyze';
 
 interface ReportProps {
   onAddReport: (report: PollutionReport) => void;
   token?: string | null;
+}
+
+interface ExtendedReportProps extends ReportProps {
+  airQuality?: AirQualityData | null;
 }
 
 export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
@@ -27,6 +32,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [isAnalyzed, setIsAnalyzed] = useState(false);
   const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
+  const [airQuality, setAirQuality] = useState<AirQualityData | null>(null);
   const [savedReportId, setSavedReportId] = useState<string | null>(null);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
@@ -40,6 +46,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
     setSelectedFile(options?.file || null);
     setIsAnalyzed(false);
     setAiResult(null);
+    setAirQuality(null);
     setSavedReportId(null);
     setAnalyzeError(null);
 
@@ -103,7 +110,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
 
     try {
       const imageFile = await resolveImageFile();
-      const { analysis, report } = await analyzePollutionImage({
+      const { analysis, airQuality: aqiData, report } = await analyzePollutionImage({
         imageFile,
         latitude: coords.lat,
         longitude: coords.lng,
@@ -113,6 +120,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
       });
 
       setAiResult(analysis);
+      setAirQuality(aqiData);
       setCategory(analysis.pollutionType);
       setIsAnalyzed(true);
       setSavedReportId(report.id);
@@ -140,6 +148,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
     setCoords({ lat: 9.9252, lng: 78.1198 });
     setIsAnalyzed(false);
     setAiResult(null);
+    setAirQuality(null);
     setSavedReportId(null);
     setAnalyzeError(null);
   };
@@ -180,6 +189,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
       needsMunicipalAction: aiResult.needsMunicipalAction,
       possibleSource: aiResult.possibleSource,
       priority: aiResult.priority,
+      airQuality: airQuality ?? undefined,
     };
 
     onAddReport(newReport);
@@ -349,12 +359,23 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
 
         </div>
 
-        <div className="lg:col-span-5 h-full">
+        <div className="lg:col-span-5 h-full space-y-6">
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-primary uppercase tracking-widest block">Step 2</span>
+            <h2 className="text-xl font-extrabold text-white tracking-tight">Live Air Quality</h2>
+            <p className="text-sm text-muted-text">
+              This section is populated directly from the backend AQI response returned by OpenWeather, not from Gemini estimates.
+            </p>
+          </div>
+
+          <AirQualityCard data={airQuality} isLoading={isLoadingAI} />
+
           <AIResultCard
             isLoading={isLoadingAI}
             isAnalyzed={isAnalyzed}
             result={aiResult}
             imageUrl={selectedImage}
+            airQuality={airQuality}
           />
         </div>
 

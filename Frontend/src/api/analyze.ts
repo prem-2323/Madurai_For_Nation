@@ -1,3 +1,5 @@
+import type { AIAnalysisResult, AirQualityData } from '../types';
+
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export async function imageUrlToFile(imageUrl: string, filename = 'photo.jpg'): Promise<File> {
@@ -43,8 +45,9 @@ export async function analyzePollutionImage(params: {
     throw new Error(payload.message || 'Failed to analyze image');
   }
 
-  return payload.data as {
-    analysis: import('./types').AIAnalysisResult;
+  const data = payload.data as {
+    analysis: AIAnalysisResult;
+    airQuality: AirQualityData | null;
     report: {
       id: string;
       image: string;
@@ -54,4 +57,10 @@ export async function analyzePollutionImage(params: {
       createdAt: string;
     };
   };
+
+  if (data.airQuality) {
+    data.airQuality.updatedAt = new Date().toISOString();
+  }
+
+  return data;
 }

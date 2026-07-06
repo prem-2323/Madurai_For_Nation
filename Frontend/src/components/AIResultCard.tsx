@@ -11,13 +11,14 @@ import {
   Building2,
   MapPin,
 } from 'lucide-react';
-import { AIAnalysisResult } from '../types';
+import type { AIAnalysisResult, AirQualityData } from '../types';
 
 interface AIResultCardProps {
   isLoading: boolean;
   isAnalyzed: boolean;
   result: AIAnalysisResult | null;
   imageUrl?: string | null;
+  airQuality?: AirQualityData | null;
 }
 
 export const AIResultCard: React.FC<AIResultCardProps> = ({
@@ -25,6 +26,7 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
   isAnalyzed,
   result,
   imageUrl,
+  airQuality,
 }) => {
   const badgeStyles = (level: string) => {
     switch (level) {
@@ -63,6 +65,56 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
     return '⚠️';
   };
 
+  const getAqiBadge = (level: string) => {
+    switch (level) {
+      case 'Good':
+        return { emoji: '🟢', label: 'Good', classes: 'text-success border-success/30 bg-success/10' };
+      case 'Fair':
+        return { emoji: '🟡', label: 'Fair', classes: 'text-amber-300 border-amber-300/30 bg-amber-300/10' };
+      case 'Moderate':
+        return { emoji: '🟠', label: 'Moderate', classes: 'text-orange-400 border-orange-400/30 bg-orange-400/10' };
+      case 'Poor':
+        return { emoji: '🔴', label: 'Poor', classes: 'text-orange-500 border-orange-500/30 bg-orange-500/10' };
+      case 'Very Poor':
+        return { emoji: '🟣', label: 'Very Poor', classes: 'text-purple-400 border-purple-400/30 bg-purple-400/10' };
+      default:
+        return { emoji: '⚪', label: level || 'Unknown', classes: 'text-muted-text border-white/5 bg-slate-800/60' };
+    }
+  };
+
+  const getAqiAdvice = (aqi: number, level: string) => {
+    if (aqi <= 1) return 'Outdoor activity is safe.';
+    if (aqi === 2) return 'Air quality is fair. Sensitive groups should take caution.';
+    if (aqi === 3) return 'Moderate air quality. Reduce prolonged outdoor exertion.';
+    if (aqi === 4) return 'Poor air quality. Avoid outdoor exercise and wear a mask.';
+    if (aqi >= 5) return 'Very poor air quality. Stay indoors and keep windows closed.';
+    return `AQI ${level}. Be cautious.`;
+  };
+
+  const formatAqiUpdated = (updatedAt?: string) => {
+    if (!updatedAt) return 'Live now';
+    const date = new Date(updatedAt);
+    return date.toLocaleString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  const getAqiComparison = (airQuality: AirQualityData) => {
+    const aqiLevel = airQuality.aqiLevel;
+    const matchesPollution = ['High', 'Critical'].includes(result?.severity || 'Low');
+    if (matchesPollution && airQuality.aqi >= 4) {
+      return `Image analysis and measured AQI both indicate severe pollution.`;
+    }
+    if (matchesPollution && airQuality.aqi <= 2) {
+      return `Image shows pollution, but current measured air quality is still ${aqiLevel}.`;
+    }
+    return `AI image analysis and live AQI are aligned with current conditions.`;
+  };
+
   return (
     <div className="glass-panel rounded-2xl border border-white/5 h-full flex flex-col justify-between overflow-hidden shadow-xl min-h-[360px]">
 
@@ -86,7 +138,7 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
             <div className="space-y-2">
               <span className="text-xs text-emerald-500 font-bold block animate-pulse">Running Gemini Vision Pipeline...</span>
               <span className="text-[10px] text-muted-text block max-w-xs mx-auto">
-                Inspecting pollution markers, estimating particulate impact, and generating municipal recommendations...
+                Inspecting pollution markers with Gemini Vision and fetching live air quality data for your coordinates...
               </span>
             </div>
           </div>
@@ -197,6 +249,52 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
               <div className="p-3 bg-slate-900/60 rounded-xl border border-white/5">
                 <span className="text-[10px] font-bold uppercase text-muted-text block mb-1">AI Reasoning</span>
                 <p className="text-xs text-white leading-relaxed">{result.reason}</p>
+              </div>
+            )}
+
+            {airQuality && (
+              <div className="p-4 bg-slate-900/60 rounded-xl border border-white/5 space-y-3">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-muted-text">Live AQI</span>
+                    <div className={`mt-2 inline-flex items-center gap-2 text-sm font-bold px-3 py-2 rounded-full border ${getAqiBadge(airQuality.aqiLevel).classes}`}>
+                      {getAqiBadge(airQuality.aqiLevel).emoji} {getAqiBadge(airQuality.aqiLevel).label}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-muted-text">Updated</span>
+                    <p className="text-xs text-white mt-1">{formatAqiUpdated(airQuality.updatedAt)}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-950/70 rounded-xl border border-white/5">
+                    <span className="text-[10px] uppercase font-bold text-muted-text block">AQI</span>
+                    <span className="text-xl font-extrabold text-white">{airQuality.aqi}</span>
+                  </div>
+                  <div className="p-3 bg-slate-950/70 rounded-xl border border-white/5">
+                    <span className="text-[10px] uppercase font-bold text-muted-text block">Recommendation</span>
+                    <span className="text-xs text-white block mt-1">{getAqiAdvice(airQuality.aqi, airQuality.aqiLevel)}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-900/60 rounded-xl border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-muted-text block mb-2">AI vs AQI Comparison</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] text-muted-text">
+                    <div className="p-2 bg-slate-950/80 rounded-xl border border-white/5">
+                      <span className="font-bold text-white block">AI Analysis</span>
+                      <span>{result.pollutionType}</span>
+                    </div>
+                    <div className="p-2 bg-slate-950/80 rounded-xl border border-white/5">
+                      <span className="font-bold text-white block">AQI</span>
+                      <span>{getAqiBadge(airQuality.aqiLevel).label}</span>
+                    </div>
+                    <div className="p-2 bg-slate-950/80 rounded-xl border border-white/5">
+                      <span className="font-bold text-white block">Conclusion</span>
+                      <span>{getAqiComparison(airQuality)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

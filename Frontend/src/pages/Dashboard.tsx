@@ -5,7 +5,8 @@ import { DashboardCard } from '../components/DashboardCard';
 import { ReportTable } from '../components/ReportTable';
 import { Modal } from '../components/Common';
 import { PollutionReport, SeverityLevel, ReportStatus } from '../types';
-import { BarChart3, PieChart, Activity, Users, ShieldAlert, Sparkles, MapPin, Calendar, HeartPulse, ClipboardCheck, CheckCircle } from 'lucide-react';
+import { BarChart3, PieChart, Activity, ShieldAlert, MapPin, Calendar, HeartPulse, ClipboardCheck, Wind } from 'lucide-react';
+import { AirQualityCard } from '../components/AirQualityCard';
 import { CATEGORIES } from '../data';
 
 interface DashboardProps {
@@ -25,13 +26,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // 1. DYNAMIC CALCULATED STATISTICS
   const stats = useMemo(() => {
     const total = reports.length;
-    
-    // Reports today: those containing current day pattern or newly added
+
     const todayCount = reports.filter(r => r.time.includes('2026-07-03') || r.id.includes('2206')).length || 2;
-    
-    const highPriority = reports.filter((r) => r.severity === 'High').length;
-    
-    // Calculate severity average (3 for High, 2 for Medium, 1 for Low)
+
+    const highPriority = reports.filter((r) => r.severity === 'High' || r.severity === 'Critical').length;
+
+    const reportsWithAqi = reports.filter((r) => r.airQuality?.aqi);
+    const avgAqi = reportsWithAqi.length
+      ? Math.round(reportsWithAqi.reduce((acc, r) => acc + (r.airQuality?.aqi ?? 0), 0) / reportsWithAqi.length)
+      : 0;
+
+    const latestAqiReport = reportsWithAqi[0];
+    const currentAqiLevel = latestAqiReport?.airQuality?.aqiLevel || 'N/A';
+
+    const highestPm25 = reportsWithAqi.length
+      ? Math.max(...reportsWithAqi.map((r) => r.airQuality?.pm25 ?? 0))
+      : 0;
+
+    const criticalAreas = reports.filter(
+      (r) =>
+        (r.airQuality?.aqi ?? 0) >= 4 ||
+        r.airQuality?.aqiLevel === 'Poor' ||
+        r.airQuality?.aqiLevel === 'Very Poor' ||
+        r.severity === 'High' ||
+        r.severity === 'Critical'
+    ).length;
+
     const severitySum = reports.reduce((acc, curr) => {
       if (curr.severity === 'Critical' || curr.severity === 'High') return acc + 3;
       if (curr.severity === 'Medium') return acc + 2;
@@ -44,6 +64,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       todayCount,
       highPriority,
       avgSeverity: `${avgSeverityVal} / 3.0`,
+      avgAqi,
+      currentAqiLevel,
+      highestPm25,
+      criticalAreas,
     };
   }, [reports]);
 
@@ -113,10 +137,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* TOP STATISTICS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Reports" value={stats.total} change="8.4%" iconName="FileText" color="info" />
-        <StatCard title="Today's Incidents" value={stats.todayCount} change="12.5%" iconName="Activity" color="secondary" />
-        <StatCard title="High Priority Hazards" value={stats.highPriority} change="-2.4%" iconName="ShieldAlert" color="danger" />
-        <StatCard title="Average Severity Index" value={stats.avgSeverity} change="4.1%" iconName="Sparkles" color="warning" />
+        <StatCard title="Current AQI" value={stats.avgAqi || '—'} iconName="Wind" color="info" />
+        <StatCard title="Air Quality" value={stats.currentAqiLevel} iconName="Activity" color="warning" />
+        <StatCard title="Highest PM2.5" value={stats.highestPm25 ? `${stats.highestPm25} μg/m³` : '—'} iconName="ShieldAlert" color="danger" />
+        <StatCard title="Critical Areas" value={stats.criticalAreas} iconName="MapPin" color="secondary" />
       </div>
 
       {/* CHARTS GRAPHICS ROW */}
@@ -357,6 +381,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 LENS_LAT: {selectedReport.coordinates.lat.toFixed(6)} | LENS_LNG: {selectedReport.coordinates.lng.toFixed(6)}
               </span>
             </div>
+
+            {/* Live air quality data */}
+            {selectedReport.airQuality && selectedReport.airQuality.aqi > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-secondary">
+                  <Wind className="w-4 h-4 text-secondary shrink-0" />
+                  <span className="text-[10px] font-bold uppercase text-muted-text tracking-wide">Live Air Quality at Incident Site</span>
+                </div>
+                <AirQualityCard data={selectedReport.airQuality} />
+              </div>
+            )}
 
             {/* Health risk analysis */}
             <div className="p-4 bg-slate-900/60 rounded-xl border border-white/5 space-y-1.5">
