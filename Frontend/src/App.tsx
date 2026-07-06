@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -12,12 +12,57 @@ import { Report } from './pages/Report';
 import { Dashboard } from './pages/Dashboard';
 import { MapPage } from './pages/MapPage';
 import { About } from './pages/About';
+import { Auth } from './pages/Auth';
+import { Profile } from './pages/Profile';
 import { PollutionReport, ReportStatus } from './types';
 import { INITIAL_REPORTS } from './data';
 import { motion } from 'motion/react';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:5000';
 
 export default function App() {
   const [reports, setReports] = useState<PollutionReport[]>(INITIAL_REPORTS);
+  const [user, setUser] = useState<any>(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+
+  // Sync session check with profile323 on mount if token exists
+  useEffect(() => {
+    const verifyToken = async () => {
+      if (!token) return;
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/auth/profile323`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const verifiedUser = response.data.data;
+        setUser(verifiedUser);
+        localStorage.setItem('user', JSON.stringify(verifiedUser));
+      } catch (err) {
+        // Clear session if verification fails
+        handleLogout();
+      }
+    };
+    verifyToken();
+  }, [token]);
+
+  const handleLoginSuccess = (loggedInUser: any, userToken: string) => {
+    setUser(loggedInUser);
+    setToken(userToken);
+    localStorage.setItem('token', userToken);
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  };
 
   // 1. ADD NEW REPORT HANDLER (Pushed to beginning of list)
   const handleAddReport = (newReport: PollutionReport) => {
@@ -41,7 +86,7 @@ export default function App() {
       <div className="min-h-screen flex flex-col bg-[#0F172A] text-white selection:bg-secondary/30 selection:text-white">
         
         {/* Sticky Header Navigation */}
-        <Navbar />
+        <Navbar user={user} onLogout={handleLogout} />
 
         {/* Dynamic Route Content (With delicate page fade-ins) */}
         <main className="flex-1 relative">
@@ -66,7 +111,7 @@ export default function App() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.35 }}
                 >
-                  <Report onAddReport={handleAddReport} />
+                  <Report onAddReport={handleAddReport} token={token} />
                 </motion.div>
               }
             />
@@ -107,6 +152,30 @@ export default function App() {
                   transition={{ duration: 0.35 }}
                 >
                   <About />
+                </motion.div>
+              }
+            />
+            <Route
+              path="/auth"
+              element={
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <Auth onLoginSuccess={handleLoginSuccess} />
+                </motion.div>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <Profile token={token} onLogout={handleLogout} />
                 </motion.div>
               }
             />

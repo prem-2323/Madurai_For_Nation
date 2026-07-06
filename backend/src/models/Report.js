@@ -1,0 +1,34 @@
+const mongoose = require('mongoose');
+
+const reportSchema = new mongoose.Schema({
+  reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  image: { type: String, default: '' },
+  images: [{ type: String }],
+  category: { type: String, required: true, trim: true },
+  description: { type: String, required: true, trim: true },
+  severity: { type: String, enum: ['low', 'moderate', 'high', 'critical'], default: 'moderate' },
+  confidence: { type: Number, default: 0 },
+  healthRisk: { type: String, default: 'unknown' },
+  recommendation: { type: String, default: '' },
+  pollutionDetected: { type: Boolean, default: false },
+  reason: { type: String, default: '' },
+  estimatedPM25Impact: { type: String, default: '' },
+  estimatedPM10Impact: { type: String, default: '' },
+  emergencyLevel: { type: String, default: 'Green' },
+  needsMunicipalAction: { type: Boolean, default: false },
+  possibleSource: { type: String, default: '' },
+  location: { type: String, required: true, trim: true },
+  latitude: { type: Number, default: 0 },
+  longitude: { type: Number, default: 0 },
+  AQI: { type: Number, default: 0 },
+  PM25: { type: Number, default: 0 },
+  PM10: { type: Number, default: 0 },
+  CO: { type: Number, default: 0 },
+  NO2: { type: Number, default: 0 },
+  O3: { type: Number, default: 0 },
+  prediction: { type: String, default: '' },
+  status: { type: String, enum: ['pending', 'in_progress', 'resolved', 'rejected'], default: 'pending' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('Report', reportSchema);

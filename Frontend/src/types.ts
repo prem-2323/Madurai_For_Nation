@@ -1,5 +1,20 @@
-export type SeverityLevel = 'Low' | 'Medium' | 'High';
+export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 export type ReportStatus = 'Reported' | 'AI Analyzed' | 'Action Scheduled' | 'Resolved';
+
+export interface AIAnalysisResult {
+  pollutionDetected: boolean;
+  pollutionType: string;
+  confidence: number;
+  severity: SeverityLevel;
+  reason: string;
+  healthRisk: string;
+  recommendation: string;
+  estimatedPM25Impact: string;
+  estimatedPM10Impact: string;
+  emergencyLevel: string;
+  needsMunicipalAction: boolean;
+  possibleSource: string;
+}
 
 export interface PollutionReport {
   id: string;
@@ -17,6 +32,13 @@ export interface PollutionReport {
   confidence: number;
   healthRisk: string;
   recommendation: string;
+  pollutionDetected?: boolean;
+  reason?: string;
+  estimatedPM25Impact?: string;
+  estimatedPM10Impact?: string;
+  emergencyLevel?: string;
+  needsMunicipalAction?: boolean;
+  possibleSource?: string;
 }
 
 export interface StatCardData {

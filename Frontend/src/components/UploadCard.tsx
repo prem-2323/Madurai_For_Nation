@@ -49,7 +49,10 @@ export const PRESET_PHOTOS: PresetPhoto[] = [
 ];
 
 interface UploadCardProps {
-  onImageSelected: (imageUrl: string, presetData?: { category: string; description: string }) => void;
+  onImageSelected: (
+    imageUrl: string,
+    options?: { file?: File; category?: string; description?: string }
+  ) => void;
   selectedImage: string | null;
   onClear: () => void;
 }
@@ -97,7 +100,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
-        onImageSelected(event.target.result as string);
+        onImageSelected(event.target.result as string, { file });
       }
     };
     reader.readAsDataURL(file);

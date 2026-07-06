@@ -33,7 +33,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     
     // Calculate severity average (3 for High, 2 for Medium, 1 for Low)
     const severitySum = reports.reduce((acc, curr) => {
-      if (curr.severity === 'High') return acc + 3;
+      if (curr.severity === 'Critical' || curr.severity === 'High') return acc + 3;
       if (curr.severity === 'Medium') return acc + 2;
       return acc + 1;
     }, 0);
@@ -69,7 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let low = 0;
 
     reports.forEach((r) => {
-      if (r.severity === 'High') high++;
+      if (r.severity === 'Critical' || r.severity === 'High') high++;
       else if (r.severity === 'Medium') medium++;
       else low++;
     });
