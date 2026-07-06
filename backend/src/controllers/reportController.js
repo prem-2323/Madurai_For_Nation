@@ -16,10 +16,42 @@ exports.createReport = async (req, res) => {
 
 exports.getReports = async (req, res) => {
   try {
-    const { status, category, page = 1, limit = 10 } = req.query;
+    const { status, category, page = 1, limit = 10, map } = req.query;
     const query = {};
     if (status) query.status = status;
     if (category) query.category = category;
+
+    if (map === 'true') {
+      const reports = await Report.find(query)
+        .populate('reportedBy', 'name email')
+        .sort({ createdAt: -1 })
+        .select(
+          '_id latitude longitude category severity AQI aqiLevel image createdAt status recommendation location description confidence healthRisk reportedBy'
+        );
+
+      const mapReports = reports
+        .filter((r) => r.latitude && r.longitude)
+        .map((r) => ({
+          _id: r._id,
+          latitude: r.latitude,
+          longitude: r.longitude,
+          category: r.category,
+          severity: r.severity,
+          aqi: r.AQI,
+          aqiLevel: r.aqiLevel,
+          image: r.image,
+          createdAt: r.createdAt,
+          status: r.status,
+          recommendation: r.recommendation,
+          location: r.location,
+          description: r.description,
+          confidence: r.confidence,
+          healthRisk: r.healthRisk,
+          reporter: r.reportedBy?.name || 'Anonymous',
+        }));
+
+      return successResponse(res, mapReports);
+    }
 
     const reports = await Report.find(query)
       .populate('reportedBy', 'name email')

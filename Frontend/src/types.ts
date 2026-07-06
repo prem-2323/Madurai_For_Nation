@@ -55,6 +55,8 @@ export interface PollutionReport {
   possibleSource?: string;
   priority?: string;
   airQuality?: AirQualityData;
+  reporter?: string;
+  backendStatus?: string;
 }
 
 export interface StatCardData {

@@ -3,12 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Lock, Mail, User, ShieldAlert, Sparkles, ArrowRight } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../api/analyze';
 
 interface AuthProps {
   onLoginSuccess: (user: any, token: string) => void;
 }
-
-const API_BASE_URL = 'http://localhost:5000';
 
 export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -40,10 +39,10 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           password
         });
         const { user, token } = response.data.data;
+        onLoginSuccess(user, token);
         setSuccess('Authentication successful! Redirecting...');
         
         setTimeout(() => {
-          onLoginSuccess(user, token);
           navigate(from, { replace: true });
         }, 1500);
       } else {
@@ -55,10 +54,10 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           role
         });
         const { user, token } = response.data.data;
+        onLoginSuccess(user, token);
         setSuccess('Account created successfully! Redirecting...');
 
         setTimeout(() => {
-          onLoginSuccess(user, token);
           navigate(from, { replace: true });
         }, 1500);
       }

@@ -18,8 +18,7 @@ import { PollutionReport, ReportStatus } from './types';
 import { INITIAL_REPORTS } from './data';
 import { motion } from 'motion/react';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000';
+import { API_BASE_URL } from './api/analyze';
 
 export default function App() {
   const [reports, setReports] = useState<PollutionReport[]>(INITIAL_REPORTS);
@@ -139,7 +138,7 @@ export default function App() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.35 }}
                 >
-                  <MapPage reports={reports} />
+                  <MapPage reports={reports} token={token} />
                 </motion.div>
               }
             />
