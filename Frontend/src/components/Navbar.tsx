@@ -3,7 +3,12 @@ import { NavLink, Link } from 'react-router-dom';
 import { Menu, X, Wind, Github } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  user: any;
+  onLogout: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
@@ -13,6 +18,10 @@ export const Navbar: React.FC = () => {
     { name: 'Map', path: '/map' },
     { name: 'About', path: '/about' },
   ];
+
+  const displayNavItems = user 
+    ? [...navItems, { name: 'Profile', path: '/profile' }]
+    : navItems;
 
   return (
     <>
@@ -31,7 +40,7 @@ export const Navbar: React.FC = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => (
+              {displayNavItems.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
@@ -48,17 +57,41 @@ export const Navbar: React.FC = () => {
               ))}
             </nav>
 
-            {/* Desktop Action (GitHub) */}
+            {/* Desktop Action */}
             <div className="hidden md:flex items-center gap-4">
               <a
                 href="https://github.com"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-white/5 transition-all hover:border-secondary/30"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-muted-text hover:text-white text-xs border border-white/5 transition-all"
               >
-                <Github className="w-4 h-4" />
+                <Github className="w-3.5 h-3.5" />
                 <span>GitHub</span>
               </a>
+
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <Link 
+                    to="/profile" 
+                    className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-secondary/30 bg-secondary/5 hover:bg-secondary/15 text-white transition-all capitalize"
+                  >
+                    Hi, {user.name.split(' ')[0]}
+                  </Link>
+                  <button
+                    onClick={onLogout}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-danger/10 hover:bg-danger/20 border border-danger/30 text-white transition-all cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="px-4 py-2 rounded-xl bg-gradient-primary-to-secondary hover:opacity-95 text-white text-sm font-semibold accent-glow-secondary transition-all"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -112,7 +145,7 @@ export const Navbar: React.FC = () => {
                 </div>
 
                 <nav className="flex flex-col gap-2">
-                  {navItems.map((item) => (
+                  {displayNavItems.map((item) => (
                     <NavLink
                       key={item.path}
                       to={item.path}
@@ -132,13 +165,42 @@ export const Navbar: React.FC = () => {
               </div>
 
               <div className="space-y-4 pt-6 border-t border-slate-800">
+                {user ? (
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm font-semibold capitalize text-center"
+                    >
+                      Hi, {user.name}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        setIsOpen(false);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-danger/15 hover:bg-danger/20 border border-danger/35 text-white text-sm font-semibold cursor-pointer text-center"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-primary-to-secondary text-white text-sm font-bold shadow-md text-center"
+                  >
+                    Sign In
+                  </Link>
+                )}
+
                 <a
                   href="https://github.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-slate-800 transition-all"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-muted-text hover:text-white text-xs border border-slate-800 transition-all text-center"
                 >
-                  <Github className="w-4 h-4" />
+                  <Github className="w-3.5 h-3.5" />
                   <span>GitHub Repository</span>
                 </a>
               </div>

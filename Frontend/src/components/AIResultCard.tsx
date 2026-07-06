@@ -156,6 +156,16 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
               </div>
             </div>
 
+            <div className="p-3 bg-slate-900/60 rounded-xl border border-white/5">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="w-4 h-4 text-danger shrink-0" />
+                <span className="text-[10px] font-bold uppercase text-muted-text">Priority</span>
+              </div>
+              <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-md border ${badgeStyles(result.priority || 'Medium')}`}>
+                {result.priority || 'Medium'}
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-slate-900/60 rounded-xl border border-white/5">
                 <div className="flex items-center gap-1.5 text-muted-text mb-1">

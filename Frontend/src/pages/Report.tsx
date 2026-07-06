@@ -179,6 +179,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
       emergencyLevel: aiResult.emergencyLevel,
       needsMunicipalAction: aiResult.needsMunicipalAction,
       possibleSource: aiResult.possibleSource,
+      priority: aiResult.priority,
     };
 
     onAddReport(newReport);

@@ -3,7 +3,8 @@ const ai = require('../config/gemini');
 const {
   INSPECTION_PROMPT,
   parseGeminiJson,
-  normalizeDisplaySeverity
+  normalizeDisplaySeverity,
+  normalizePriority
 } = require('../utils/pollutionPrompt');
 
 const analyzeImage = async (filePath, mimeType, userDescription = '') => {
@@ -49,7 +50,8 @@ const analyzeImage = async (filePath, mimeType, userDescription = '') => {
     estimatedPM10Impact: parsed.estimatedPM10Impact || 'Unknown',
     emergencyLevel: parsed.emergencyLevel || 'Green',
     needsMunicipalAction: Boolean(parsed.needsMunicipalAction),
-    possibleSource: parsed.possibleSource || ''
+    possibleSource: parsed.possibleSource || '',
+    priority: normalizePriority(parsed.priority, parsed.severity, Boolean(parsed.needsMunicipalAction))
   };
 };
 

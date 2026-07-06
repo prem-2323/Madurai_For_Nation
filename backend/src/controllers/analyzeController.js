@@ -52,6 +52,7 @@ exports.analyzePollution = async (req, res) => {
       emergencyLevel: analysis.emergencyLevel,
       needsMunicipalAction: analysis.needsMunicipalAction,
       possibleSource: analysis.possibleSource,
+      priority: analysis.priority,
       status: 'pending'
     });
 

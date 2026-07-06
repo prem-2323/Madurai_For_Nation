@@ -16,6 +16,7 @@ Possible pollution types:
 - Clean Environment
 
 Return ONLY valid JSON.
+Include every field exactly as shown in the schema below.
 
 {
   "pollutionDetected": true,
@@ -29,13 +30,15 @@ Return ONLY valid JSON.
   "estimatedPM10Impact": "",
   "emergencyLevel": "",
   "needsMunicipalAction": false,
-  "possibleSource": ""
+  "possibleSource": "",
+  "priority": ""
 }
 
 Severity must be one of: Low, Medium, High, Critical
 Confidence must be between 0-100.
 emergencyLevel must be one of: Green, Yellow, Orange, Red
 estimatedPM25Impact and estimatedPM10Impact must be one of: Low, Medium, High, Very High
+priority must be one of: Low, Medium, High, Critical
 Do not return markdown.
 Do not explain anything.`;
 
@@ -76,9 +79,26 @@ const normalizeDisplaySeverity = (severity) => {
   return map[String(severity).toLowerCase()] || 'Medium';
 };
 
+const normalizePriority = (priority, severity, needsMunicipalAction) => {
+  const normalized = String(priority || '').trim().toLowerCase();
+  if (['low', 'medium', 'high', 'critical'].includes(normalized)) {
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  const sev = String(severity || '').trim().toLowerCase();
+  if (sev === 'critical') return 'Critical';
+  if (sev === 'high') return 'High';
+  if (sev === 'medium' || sev === 'moderate') return 'Medium';
+  if (sev === 'low') return 'Low';
+
+  if (needsMunicipalAction) return 'High';
+  return 'Medium';
+};
+
 module.exports = {
   INSPECTION_PROMPT,
   parseGeminiJson,
   normalizeSeverity,
-  normalizeDisplaySeverity
+  normalizeDisplaySeverity,
+  normalizePriority
 };

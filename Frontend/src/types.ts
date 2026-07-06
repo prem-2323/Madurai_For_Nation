@@ -14,6 +14,7 @@ export interface AIAnalysisResult {
   emergencyLevel: string;
   needsMunicipalAction: boolean;
   possibleSource: string;
+  priority: string;
 }
 
 export interface PollutionReport {
@@ -39,6 +40,7 @@ export interface PollutionReport {
   emergencyLevel?: string;
   needsMunicipalAction?: boolean;
   possibleSource?: string;
+  priority?: string;
 }
 
 export interface StatCardData {

@@ -17,6 +17,7 @@ const reportSchema = new mongoose.Schema({
   emergencyLevel: { type: String, default: 'Green' },
   needsMunicipalAction: { type: Boolean, default: false },
   possibleSource: { type: String, default: '' },
+  priority: { type: String, default: 'Medium' },
   location: { type: String, required: true, trim: true },
   latitude: { type: Number, default: 0 },
   longitude: { type: Number, default: 0 },
