@@ -16,6 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     { name: 'Report', path: '/report' },
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Map', path: '/map' },
+    { name: '🚨 Alerts', path: '/alerts' },
     { name: 'About', path: '/about' },
   ];
 

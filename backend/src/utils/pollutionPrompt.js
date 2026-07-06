@@ -23,6 +23,7 @@ Include every field exactly as shown in the schema below.
   "pollutionType": "",
   "confidence": 0,
   "severity": "",
+  "severityScore": 0,
   "reason": "",
   "healthRisk": "",
   "recommendation": "",
@@ -35,6 +36,7 @@ Include every field exactly as shown in the schema below.
 }
 
 Severity must be one of: Low, Medium, High, Critical
+severityScore must be a number between 0 and 100 representing the severity percentage.
 Confidence must be between 0-100.
 emergencyLevel must be one of: Green, Yellow, Orange, Red
 estimatedPM25Impact and estimatedPM10Impact must be one of: Low, Medium, High, Very High

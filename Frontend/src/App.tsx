@@ -11,6 +11,7 @@ import { Home } from './pages/Home';
 import { Report } from './pages/Report';
 import { Dashboard } from './pages/Dashboard';
 import { MapPage } from './pages/MapPage';
+import { Alerts } from './pages/Alerts';
 import { About } from './pages/About';
 import { Auth } from './pages/Auth';
 import { Profile } from './pages/Profile';
@@ -19,6 +20,7 @@ import { INITIAL_REPORTS } from './data';
 import { motion } from 'motion/react';
 import axios from 'axios';
 import { API_BASE_URL } from './api/analyze';
+import { fetchMapReports } from './api/reports';
 
 export default function App() {
   const [reports, setReports] = useState<PollutionReport[]>(INITIAL_REPORTS);
@@ -47,6 +49,19 @@ export default function App() {
       }
     };
     verifyToken();
+  }, [token]);
+
+  // Fetch all reports from DB on mount
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        const dbReports = await fetchMapReports(token);
+        setReports(dbReports);
+      } catch (err) {
+        console.error('Failed to load reports from database:', err);
+      }
+    };
+    loadReports();
   }, [token]);
 
   const handleLoginSuccess = (loggedInUser: any, userToken: string) => {
@@ -139,6 +154,18 @@ export default function App() {
                   transition={{ duration: 0.35 }}
                 >
                   <MapPage reports={reports} token={token} />
+                </motion.div>
+              }
+            />
+            <Route
+              path="/alerts"
+              element={
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <Alerts token={token} />
                 </motion.div>
               }
             />

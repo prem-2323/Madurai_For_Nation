@@ -9,6 +9,9 @@ import { BarChart3, PieChart, Activity, ShieldAlert, MapPin, Calendar, HeartPuls
 import { AirQualityCard } from '../components/AirQualityCard';
 import { CATEGORIES } from '../data';
 import { fetchPrediction } from '../api/prediction';
+import { fetchAlerts } from '../api/alerts';
+import { AlertData } from '../types';
+import { Link } from 'react-router-dom';
 
 interface DashboardProps {
   reports: PollutionReport[];
@@ -26,6 +29,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [prediction, setPrediction] = useState<AQIPrediction | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(true);
   const [predictionError, setPredictionError] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<AlertData[]>([]);
+  
+  useEffect(() => {
+    fetchAlerts().then(setAlerts).catch(() => console.error('Failed to load alerts'));
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -227,6 +235,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <p className="text-sm text-muted-text">Command console for city managers to track active emissions hotspots, map toxic hazards, and schedule clean-air details.</p>
         </div>
       </div>
+
+      {/* ALERTS SUMMARY */}
+      <Link to="/alerts" className="block bg-slate-900 border border-red-500/30 rounded-xl p-4 hover:bg-slate-800 transition-colors shadow-lg shadow-red-500/5 group">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-500/20 p-2 rounded-lg">
+              <ShieldAlert className="w-6 h-6 text-red-500" />
+            </div>
+            <div>
+              <h2 className="text-white font-bold text-lg group-hover:text-red-400 transition-colors">Municipal Alerts Center</h2>
+              <p className="text-sm text-muted-text">Automated AI emergency dispatches based on severe pollution events</p>
+            </div>
+          </div>
+          <div className="flex gap-6 text-center">
+            <div>
+              <div className="text-2xl font-extrabold text-red-500">{alerts.filter(a => a.priority === 'Critical').length}</div>
+              <div className="text-[10px] uppercase font-bold text-muted-text">Critical</div>
+            </div>
+            <div>
+              <div className="text-2xl font-extrabold text-yellow-500">{alerts.filter(a => a.status === 'Pending').length}</div>
+              <div className="text-[10px] uppercase font-bold text-muted-text">Pending</div>
+            </div>
+            <div>
+              <div className="text-2xl font-extrabold text-green-500">{alerts.filter(a => a.status === 'Resolved').length}</div>
+              <div className="text-[10px] uppercase font-bold text-muted-text">Resolved</div>
+            </div>
+          </div>
+        </div>
+      </Link>
 
       {/* TOP STATISTICS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">

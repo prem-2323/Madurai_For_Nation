@@ -1,7 +1,7 @@
 ﻿import React, { useMemo, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L, { divIcon } from 'leaflet';
-import 'leaflet.heat';
+import 'leaflet.heat/dist/leaflet-heat.js';
 import 'leaflet/dist/leaflet.css';
 import { AlertCircle, Calendar, Filter, Info, LocateFixed, MapPin, Search, ShieldAlert } from 'lucide-react';
 import { PollutionReport, SeverityLevel } from '../types';

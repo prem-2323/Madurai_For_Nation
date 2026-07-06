@@ -93,3 +93,17 @@ export interface FeatureData {
   description: string;
   iconName: string;
 }
+
+export interface AlertData {
+  _id: string;
+  location: string;
+  pollutionType: string;
+  aqi: number;
+  predictedAQI: number;
+  severity: number;
+  priority: 'Critical' | 'High' | 'Medium' | 'Low';
+  reason: string;
+  suggestedAction: string;
+  status: 'Pending' | 'In Progress' | 'Resolved';
+  createdAt: string;
+}

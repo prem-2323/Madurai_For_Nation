@@ -1,6 +1,8 @@
 const Report = require('../models/Report');
+const Alert = require('../models/Alert');
 const { analyzeImage } = require('../services/geminiVision');
 const { getAirQuality } = require('../services/aqiService');
+const { build24HourPrediction } = require('../services/predictionService');
 const { normalizeSeverity } = require('../utils/pollutionPrompt');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -22,10 +24,14 @@ exports.analyzePollution = async (req, res) => {
       return errorResponse(res, 'Valid latitude and longitude are required', 400);
     }
 
-    const [analysis, airQuality] = await Promise.all([
+    const [analysis, airQuality, prediction] = await Promise.all([
       analyzeImage(req.file.path, req.file.mimetype, description),
       getAirQuality(latitude, longitude).catch((err) => {
         console.warn('AQI fetch failed:', err.message);
+        return null;
+      }),
+      build24HourPrediction({ latitude, longitude }).catch((err) => {
+        console.warn('Prediction fetch failed:', err.message);
         return null;
       }),
     ]);
@@ -67,6 +73,46 @@ exports.analyzePollution = async (req, res) => {
       humidity: airQuality?.humidity ?? 0,
       status: 'pending'
     });
+
+    const currentAQI = airQuality?.aqi ?? 0;
+    const predictedAQI = prediction?.predictedAQI ?? 0;
+    const confidence = analysis.confidence ?? 0;
+    const priority = analysis.priority ?? 'Medium';
+    const needsMunicipalAction = analysis.needsMunicipalAction === true;
+
+    if (
+      confidence >= 80 || 
+      currentAQI >= 180 || 
+      predictedAQI >= 180 || 
+      needsMunicipalAction || 
+      priority === 'Critical' || 
+      priority === 'High'
+    ) {
+      const getAction = (type) => {
+        const typeLower = (type || '').toLowerCase();
+        if (typeLower.includes('garbage')) return '🚒 Deploy Fire & Cleanup Team';
+        if (typeLower.includes('vehicle')) return '🚦 Traffic Diversion';
+        if (typeLower.includes('industrial') || typeLower.includes('factory')) return '🏭 Inspect Factory';
+        if (typeLower.includes('construction') || typeLower.includes('dust')) return '💦 Deploy Water Mist Cannon';
+        if (typeLower.includes('water')) return '🚰 Water Quality Inspection';
+        return '🚓 Dispatch General Inspection Team';
+      };
+
+      const alertPriority = (priority === 'Critical' || priority === 'High') ? priority : (confidence >= 80 || needsMunicipalAction) ? 'High' : 'Medium';
+      
+      await Alert.create({
+        reportId: report._id,
+        location: locationLabel,
+        pollutionType: analysis.pollutionType || 'Unknown',
+        aqi: currentAQI,
+        predictedAQI,
+        severity: confidence,
+        priority: alertPriority,
+        reason: analysis.reason || 'High pollution levels detected',
+        suggestedAction: getAction(analysis.pollutionType)
+      });
+    }
+
 
     successResponse(
       res,
