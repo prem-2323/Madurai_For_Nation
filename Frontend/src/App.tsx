@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -15,12 +15,17 @@ import { Alerts } from './pages/Alerts';
 import { About } from './pages/About';
 import { Auth } from './pages/Auth';
 import { Profile } from './pages/Profile';
+import { Users } from './pages/Users';
+import { AdminAnalytics } from './pages/AdminAnalytics';
+import { Settings } from './pages/Settings';
+import { Logs } from './pages/Logs';
 import { PollutionReport, ReportStatus } from './types';
 import { INITIAL_REPORTS } from './data';
 import { motion } from 'motion/react';
 import axios from 'axios';
 import { API_BASE_URL } from './api/analyze';
 import { fetchMapReports } from './api/reports';
+import { canAccessRoute } from './utils/role';
 
 export default function App() {
   const [reports, setReports] = useState<PollutionReport[]>(INITIAL_REPORTS);
@@ -95,6 +100,20 @@ export default function App() {
     setReports((prev) => prev.filter((r) => r.id !== id));
   };
 
+  const ProtectedRoute = ({ children, path }: { children: ReactNode; path: string }) => {
+    if (!canAccessRoute(user, path)) {
+      if (!user) return <Navigate to="/auth" state={{ from: { pathname: path } }} replace />;
+      return <Navigate to="/" replace />;
+    }
+    return <>{children}</>;
+  };
+
+  const PageTransition = ({ children }: { children: ReactNode }) => (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }}>
+      {children}
+    </motion.div>
+  );
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-[#0F172A] text-white selection:bg-secondary/30 selection:text-white">
@@ -105,107 +124,18 @@ export default function App() {
         {/* Dynamic Route Content (With delicate page fade-ins) */}
         <main className="flex-1 relative">
           <Routes>
-            <Route
-              path="/"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <Home />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/report"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <Report onAddReport={handleAddReport} token={token} />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <Dashboard
-                    reports={reports}
-                    onUpdateStatus={handleUpdateStatus}
-                    onDeleteReport={handleDeleteReport}
-                  />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/map"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <MapPage reports={reports} token={token} />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/alerts"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <Alerts token={token} />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/about"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <About />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/auth"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <Auth onLoginSuccess={handleLoginSuccess} />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <Profile token={token} onLogout={handleLogout} />
-                </motion.div>
-              }
-            />
-            {/* Fallback Catch */}
+            <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+            <Route path="/report" element={<ProtectedRoute path="/report"><PageTransition><Report onAddReport={handleAddReport} token={token} /></PageTransition></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute path="/dashboard"><PageTransition><Dashboard reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></ProtectedRoute>} />
+            <Route path="/map" element={<ProtectedRoute path="/map"><PageTransition><MapPage reports={reports} token={token} /></PageTransition></ProtectedRoute>} />
+            <Route path="/alerts" element={<ProtectedRoute path="/alerts"><PageTransition><Alerts token={token} user={user} /></PageTransition></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute path="/analytics"><PageTransition><AdminAnalytics token={token} /></PageTransition></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute path="/users"><PageTransition><Users token={token} /></PageTransition></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute path="/settings"><PageTransition><Settings /></PageTransition></ProtectedRoute>} />
+            <Route path="/logs" element={<ProtectedRoute path="/logs"><PageTransition><Logs token={token} /></PageTransition></ProtectedRoute>} />
+            <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+            <Route path="/auth" element={<PageTransition><Auth onLoginSuccess={handleLoginSuccess} /></PageTransition>} />
+            <Route path="/profile" element={<ProtectedRoute path="/profile"><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

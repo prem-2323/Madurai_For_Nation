@@ -23,6 +23,7 @@ app.use('/api/reports', require('./routes/report'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/alerts', require('./routes/alert'));
 app.use('/api/prediction', require('./routes/prediction'));
+app.use('/api/users', require('./routes/users'));
 
 if (!process.env.VERCEL) {
   const frontendDist = path.join(__dirname, '../../Frontend/dist');

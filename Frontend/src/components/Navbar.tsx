@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Menu, X, Wind, Github } from 'lucide-react';
+import { Menu, X, Wind, Github, Shield, ShieldCheck, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getNavItemsForRole, getUserRole } from '../utils/role';
 
 interface NavbarProps {
   user: any;
@@ -11,18 +12,16 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const navItems = [
-    { name: 'Home', path: '/' },
-    { name: 'Report', path: '/report' },
-    { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Map', path: '/map' },
-    { name: '🚨 Alerts', path: '/alerts' },
-    { name: 'About', path: '/about' },
-  ];
+  const navItems = getNavItemsForRole(user);
+  const role = getUserRole(user);
 
-  const displayNavItems = user 
-    ? [...navItems, { name: 'Profile', path: '/profile' }]
-    : navItems;
+  const getRoleIcon = () => {
+    switch (role) {
+      case 'admin': return <ShieldCheck className="w-4 h-4 text-purple-400" />;
+      case 'officer': return <Shield className="w-4 h-4 text-blue-400" />;
+      default: return <UserCheck className="w-4 h-4 text-green-400" />;
+    }
+  };
 
   return (
     <>
@@ -41,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
-              {displayNavItems.map((item) => (
+              {navItems.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
@@ -72,6 +71,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
               {user ? (
                 <div className="flex items-center gap-3">
+                  {role && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-slate-800 text-muted-text capitalize border border-slate-700">
+                      {getRoleIcon()}
+                      {role}
+                    </span>
+                  )}
                   <Link 
                     to="/profile" 
                     className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-secondary/30 bg-secondary/5 hover:bg-secondary/15 text-white transition-all capitalize"
@@ -146,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 </div>
 
                 <nav className="flex flex-col gap-2">
-                  {displayNavItems.map((item) => (
+                  {navItems.map((item) => (
                     <NavLink
                       key={item.path}
                       to={item.path}
@@ -168,6 +173,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               <div className="space-y-4 pt-6 border-t border-slate-800">
                 {user ? (
                   <div className="flex flex-col gap-2">
+                    {role && (
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-text font-semibold capitalize">
+                        {getRoleIcon()}
+                        {role}
+                      </div>
+                    )}
                     <Link
                       to="/profile"
                       onClick={() => setIsOpen(false)}

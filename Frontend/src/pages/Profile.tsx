@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { User, Mail, Shield, Calendar, LogOut, CheckCircle2, UserCheck } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../api/analyze';
 
 interface ProfileProps {
   token: string | null;
   onLogout: () => void;
 }
-
-const API_BASE_URL = 'http://localhost:5000';
 
 export const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
   const [profile, setProfile] = useState<any>(null);

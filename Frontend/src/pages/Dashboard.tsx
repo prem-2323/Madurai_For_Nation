@@ -12,17 +12,22 @@ import { fetchPrediction } from '../api/prediction';
 import { fetchAlerts } from '../api/alerts';
 import { AlertData } from '../types';
 import { Link } from 'react-router-dom';
+import { isOfficerOrAdmin, isAdmin, isOfficer } from '../utils/role';
 
 interface DashboardProps {
   reports: PollutionReport[];
   onUpdateStatus: (id: string, newStatus: ReportStatus) => void;
   onDeleteReport: (id: string) => void;
+  user?: any;
+  token?: string | null;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   reports,
   onUpdateStatus,
   onDeleteReport,
+  user,
+  token,
 }) => {
   const [selectedReport, setSelectedReport] = useState<PollutionReport | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -522,6 +527,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onViewReport={handleViewDetails}
           onUpdateStatus={onUpdateStatus}
           onDeleteReport={onDeleteReport}
+          user={user}
         />
       </DashboardCard>
 
@@ -538,7 +544,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               Dismiss Audit
             </button>
-            {selectedReport && selectedReport.status !== 'Resolved' && (
+            {selectedReport && selectedReport.status !== 'Resolved' && isOfficerOrAdmin(user) && (
               <button
                 onClick={() => {
                   const nextStatusMap: Record<ReportStatus, ReportStatus> = {
@@ -548,7 +554,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     'Resolved': 'Resolved'
                   };
                   onUpdateStatus(selectedReport.id, nextStatusMap[selectedReport.status]);
-                  // Refresh modal data
                   setSelectedReport({
                     ...selectedReport,
                     status: nextStatusMap[selectedReport.status]

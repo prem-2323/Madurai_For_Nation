@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Filter, ArrowUpDown, ShieldAlert, CheckCircle2, AlertCircle, Eye, Trash2, Calendar } from 'lucide-react';
 import { PollutionReport, SeverityLevel, ReportStatus } from '../types';
+import { isAdmin, isOfficerOrAdmin } from '../utils/role';
 
 interface ReportTableProps {
   reports: PollutionReport[];
   onViewReport: (report: PollutionReport) => void;
   onUpdateStatus: (id: string, newStatus: ReportStatus) => void;
   onDeleteReport?: (id: string) => void;
+  user?: any;
 }
 
 export const ReportTable: React.FC<ReportTableProps> = ({
@@ -15,6 +17,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
   onViewReport,
   onUpdateStatus,
   onDeleteReport,
+  user,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('All');
@@ -224,8 +227,8 @@ export const ReportTable: React.FC<ReportTableProps> = ({
                           <Eye className="w-4 h-4" />
                         </button>
 
-                        {/* Quick toggle status */}
-                        {report.status !== 'Resolved' ? (
+                        {/* Quick toggle status - Officer/Admin only */}
+                        {isOfficerOrAdmin(user) && report.status !== 'Resolved' ? (
                           <button
                             onClick={() => {
                               const nextStatusMap: Record<ReportStatus, ReportStatus> = {
@@ -241,13 +244,14 @@ export const ReportTable: React.FC<ReportTableProps> = ({
                           >
                             Advance Status
                           </button>
-                        ) : (
+                        ) : report.status === 'Resolved' ? (
                           <span className="flex items-center gap-1 text-success text-xs font-semibold px-2 py-1">
                             <CheckCircle2 className="w-4 h-4 text-success" /> Resolved
                           </span>
-                        )}
+                        ) : null}
 
-                        {onDeleteReport && (
+                        {/* Delete - Admin only */}
+                        {isAdmin(user) && onDeleteReport && (
                           <button
                             onClick={() => onDeleteReport(report.id)}
                             className="p-1.5 rounded-lg bg-slate-800 hover:bg-danger/20 hover:text-danger text-muted-text border border-white/5 transition-all"

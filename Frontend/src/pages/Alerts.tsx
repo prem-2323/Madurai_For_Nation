@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { fetchAlerts, updateAlertStatus } from '../api/alerts';
 import type { AlertData } from '../types';
+import { isOfficerOrAdmin, isAdmin } from '../utils/role';
 
 interface AlertsProps {
   token?: string | null;
+  user?: any;
 }
 
-export const Alerts: React.FC<AlertsProps> = ({ token }) => {
+export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
   const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +154,7 @@ export const Alerts: React.FC<AlertsProps> = ({ token }) => {
                 </div>
 
                 <div className="flex gap-4 mt-6">
-                  {alert.status !== 'In Progress' && alert.status !== 'Resolved' && (
+                  {isOfficerOrAdmin(user) && alert.status !== 'In Progress' && alert.status !== 'Resolved' && (
                     <button
                       onClick={() => handleUpdateStatus(alert._id, 'In Progress')}
                       className="px-6 py-2 bg-primary hover:bg-primary/80 text-white font-bold rounded shadow-lg transition-colors border border-white/10"
@@ -160,12 +162,28 @@ export const Alerts: React.FC<AlertsProps> = ({ token }) => {
                       [Dispatch Team]
                     </button>
                   )}
-                  {alert.status !== 'Resolved' && (
+                  {isOfficerOrAdmin(user) && alert.status !== 'Resolved' && (
                     <button
                       onClick={() => handleUpdateStatus(alert._id, 'Resolved')}
                       className="px-6 py-2 bg-success hover:bg-success/80 text-white font-bold rounded shadow-lg transition-colors border border-white/10"
                     >
                       [Mark Resolved]
+                    </button>
+                  )}
+                  {isAdmin(user) && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Delete this alert?')) {
+                          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/alerts/${alert._id}`, {
+                            method: 'DELETE',
+                            headers: { Authorization: `Bearer ${token}` }
+                          }).then(() => setAlerts(prev => prev.filter(a => a._id !== alert._id)))
+                            .catch(() => alert('Failed to delete alert'));
+                        }
+                      }}
+                      className="px-6 py-2 bg-danger hover:bg-danger/80 text-white font-bold rounded shadow-lg transition-colors border border-white/10"
+                    >
+                      [Delete Alert]
                     </button>
                   )}
                 </div>

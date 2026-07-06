@@ -1,3 +1,5 @@
+export type UserRole = 'citizen' | 'officer' | 'admin';
+export type UserStatus = 'active' | 'inactive' | 'suspended';
 export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 export type ReportStatus = 'Reported' | 'AI Analyzed' | 'Action Scheduled' | 'Resolved';
 

@@ -21,9 +21,24 @@ exports.createAlert = async (req, res) => {
 
 exports.updateAlertStatus = async (req, res) => {
   try {
-    const alert = await Alert.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+    const { status, assignedTeam } = req.body;
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (assignedTeam) updateData.assignedTeam = assignedTeam;
+
+    const alert = await Alert.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!alert) return errorResponse(res, 'Alert not found', 404);
     successResponse(res, alert, 'Alert updated successfully');
+  } catch (error) {
+    errorResponse(res, error.message, 500);
+  }
+};
+
+exports.deleteAlert = async (req, res) => {
+  try {
+    const alert = await Alert.findByIdAndDelete(req.params.id);
+    if (!alert) return errorResponse(res, 'Alert not found', 404);
+    successResponse(res, null, 'Alert deleted successfully');
   } catch (error) {
     errorResponse(res, error.message, 500);
   }

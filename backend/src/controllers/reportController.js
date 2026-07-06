@@ -86,6 +86,27 @@ exports.updateReport = async (req, res) => {
   }
 };
 
+exports.updateReportStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ['pending', 'in_progress', 'resolved', 'rejected'];
+    if (!validStatuses.includes(status)) {
+      return errorResponse(res, 'Invalid status value', 400);
+    }
+
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate('reportedBy', 'name email');
+
+    if (!report) return errorResponse(res, 'Report not found', 404);
+    successResponse(res, report, 'Report status updated successfully');
+  } catch (error) {
+    errorResponse(res, error.message, 500);
+  }
+};
+
 exports.deleteReport = async (req, res) => {
   try {
     const report = await Report.findByIdAndDelete(req.params.id);

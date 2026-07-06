@@ -100,7 +100,7 @@ const seedDB = async () => {
     await Report.deleteMany({});
     console.log('Cleared existing Users and Reports.');
 
-    // Create a mock user
+    // Create mock users
     const adminUser = await User.create({
       name: 'Admin User',
       email: 'admin@cleanair.com',
@@ -108,6 +108,22 @@ const seedDB = async () => {
       role: 'admin'
     });
     console.log('Created admin user:', adminUser.email);
+
+    await User.create({
+      name: 'Officer Kumar',
+      email: 'officer@cleanair.com',
+      password: 'officer123',
+      role: 'officer'
+    });
+    console.log('Created officer user: officer@cleanair.com');
+
+    await User.create({
+      name: 'Citizen Priya',
+      email: 'citizen@cleanair.com',
+      password: 'citizen123',
+      role: 'citizen'
+    });
+    console.log('Created citizen user: citizen@cleanair.com');
 
     // Create reports
     const reportsWithUser = mockReports.map(r => ({
