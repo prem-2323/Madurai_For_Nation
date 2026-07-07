@@ -13,6 +13,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Madurai For Nation Backend API is running'
+  });
+});
+
 app.get('/health', (req, res) => {
   res.json({ ok: true, message: 'Backend is running' });
 });
@@ -25,13 +32,5 @@ app.use('/api/alerts', require('./routes/alert'));
 app.use('/api/prediction', require('./routes/prediction'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/hotspots', require('./routes/hotspot'));
-
-if (!process.env.VERCEL) {
-  const frontendDist = path.join(__dirname, '../../Frontend/dist');
-  app.use(express.static(frontendDist));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendDist, 'index.html'));
-  });
-}
 
 module.exports = app;
