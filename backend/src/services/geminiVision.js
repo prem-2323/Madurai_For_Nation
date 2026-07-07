@@ -1,4 +1,3 @@
-const fs = require('fs');
 const ai = require('../config/gemini');
 const {
   INSPECTION_PROMPT,
@@ -7,8 +6,8 @@ const {
   normalizePriority
 } = require('../utils/pollutionPrompt');
 
-const analyzeImage = async (filePath, mimeType, userDescription = '') => {
-  const base64Image = fs.readFileSync(filePath).toString('base64');
+const analyzeImage = async (imageBuffer, mimeType, userDescription = '') => {
+  const base64Image = imageBuffer.toString('base64');
   const prompt = userDescription
     ? `${INSPECTION_PROMPT}\n\nAdditional context from the reporter: ${userDescription}`
     : INSPECTION_PROMPT;

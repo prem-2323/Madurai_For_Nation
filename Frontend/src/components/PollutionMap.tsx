@@ -156,7 +156,7 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
   const [severityFilter, setSeverityFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [locationSearch, setLocationSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'markers' | 'heatmap'>('markers');
+  const [showHeatmap, setShowHeatmap] = useState(true);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -311,32 +311,20 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
 
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-muted-text tracking-wider block">
-              View Mode
+              Map Layers
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('markers')}
-                className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                  viewMode === 'markers'
-                    ? 'bg-secondary/15 text-secondary border-secondary/30'
-                    : 'bg-slate-950 text-muted-text border-white/5 hover:text-white hover:border-white/10'
-                }`}
-              >
-                Markers
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('heatmap')}
-                className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                  viewMode === 'heatmap'
-                    ? 'bg-danger/15 text-danger border-danger/30'
-                    : 'bg-slate-950 text-muted-text border-white/5 hover:text-white hover:border-white/10'
-                }`}
-              >
-                Heatmap
-              </button>
-            </div>
+            <label className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-950 border border-white/5 cursor-pointer hover:border-secondary/30 transition-all">
+              <input
+                type="checkbox"
+                checked={showHeatmap}
+                onChange={(e) => setShowHeatmap(e.target.checked)}
+                className="w-4 h-4 rounded accent-danger bg-slate-900 border-white/10 cursor-pointer"
+              />
+              <span className="text-xs font-semibold text-white">
+                Heatmap Overlay
+              </span>
+              <span className="ml-auto text-[10px] text-muted-text">intensity</span>
+            </label>
           </div>
 
           <button
@@ -416,72 +404,70 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {viewMode === 'heatmap' ? (
-            <HeatLayer points={heatPoints} />
-          ) : (
-            filteredReports.map((report) => (
-              <Marker
-                key={report.id}
-                position={[report.coordinates.lat, report.coordinates.lng]}
-                icon={createCategoryMarkerIcon(report.category, report.severity, selectedReport?.id === report.id)}
+          {showHeatmap && <HeatLayer points={heatPoints} />}
+
+          {filteredReports.map((report) => (
+            <Marker
+              key={report.id}
+              position={[report.coordinates.lat, report.coordinates.lng]}
+              icon={createCategoryMarkerIcon(report.category, report.severity, selectedReport?.id === report.id)}
+              eventHandlers={{
+                click: () => setSelectedReport(report),
+              }}
+            >
+              <Popup
+                closeButton
+                autoPan
+                keepInView
                 eventHandlers={{
-                  click: () => setSelectedReport(report),
+                  remove: () => setSelectedReport((current) => (current?.id === report.id ? null : current)),
                 }}
               >
-                <Popup
-                  closeButton
-                  autoPan
-                  keepInView
-                  eventHandlers={{
-                    remove: () => setSelectedReport((current) => (current?.id === report.id ? null : current)),
-                  }}
-                >
-                  <div className="min-w-[280px] max-w-sm text-slate-900 space-y-3">
-                    <div className="flex gap-3">
-                      <img
-                        src={report.imageUrl}
-                        alt={report.category}
-                        className="w-20 h-20 rounded-lg object-cover border border-slate-200 bg-slate-100"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-bold text-sm text-slate-900 leading-tight">
-                          {report.category}
-                        </h4>
-                        <p className="text-[11px] text-slate-600 mt-1 line-clamp-3">
-                          {report.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <PopupStat label="AQI" value={formatAqi(report)} />
-                      <PopupStat label="Severity" value={report.severity} />
-                      <PopupStat label="Confidence" value={`${Math.round(report.confidence)}%`} />
-                      <PopupStat label="Health Risk" value={report.healthRisk || 'Unknown'} />
-                      <PopupStat label="Reporter" value={report.reporter || 'Anonymous'} />
-                      <PopupStat label="Status" value={formatReportStatus(report.status)} />
-                    </div>
-
-                    <div className="space-y-2 text-[11px] text-slate-700 border-t border-slate-200 pt-3">
-                      <div className="flex items-start gap-2">
-                        <Calendar className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
-                        <span>{formatDate(report.time)}</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <ShieldAlert className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
-                        <span>{report.recommendation || 'No recommendation available.'}</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
-                        <span>{report.location}</span>
-                      </div>
+                <div className="min-w-[280px] max-w-sm text-slate-900 space-y-3">
+                  <div className="flex gap-3">
+                    <img
+                      src={report.imageUrl}
+                      alt={report.category}
+                      className="w-20 h-20 rounded-lg object-cover border border-slate-200 bg-slate-100"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-sm text-slate-900 leading-tight">
+                        {report.category}
+                      </h4>
+                      <p className="text-[11px] text-slate-600 mt-1 line-clamp-3">
+                        {report.description}
+                      </p>
                     </div>
                   </div>
-                </Popup>
-              </Marker>
-            ))
-          )}
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <PopupStat label="AQI" value={formatAqi(report)} />
+                    <PopupStat label="Severity" value={report.severity} />
+                    <PopupStat label="Confidence" value={`${Math.round(report.confidence)}%`} />
+                    <PopupStat label="Health Risk" value={report.healthRisk || 'Unknown'} />
+                    <PopupStat label="Reporter" value={report.reporter || 'Anonymous'} />
+                    <PopupStat label="Status" value={formatReportStatus(report.status)} />
+                  </div>
+
+                  <div className="space-y-2 text-[11px] text-slate-700 border-t border-slate-200 pt-3">
+                    <div className="flex items-start gap-2">
+                      <Calendar className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
+                      <span>{formatDate(report.time)}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <ShieldAlert className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
+                      <span>{report.recommendation || 'No recommendation available.'}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
+                      <span>{report.location}</span>
+                    </div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
 
           {hotspots.map((hotspot) => {
             const hotspotColor = getHotspotPopupBackground(hotspot.risk);

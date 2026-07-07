@@ -107,7 +107,8 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
             <h2 className="text-lg font-bold text-white">{profile?.name}</h2>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 border border-primary/20 text-success capitalize">
               <UserCheck className="w-3.5 h-3.5" />
-              {profile?.role}
+              {/* Display the actual role from the profile, never default to 'citizen' */}
+              {profile?.role || 'loading'}
             </span>
           </div>
 

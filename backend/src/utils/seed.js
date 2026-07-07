@@ -101,21 +101,13 @@ const seedDB = async () => {
     console.log('Cleared existing Users and Reports.');
 
     // Create mock users
-    const adminUser = await User.create({
-      name: 'Admin User',
-      email: 'admin@cleanair.com',
-      password: 'adminpassword123',
-      role: 'admin'
-    });
-    console.log('Created admin user:', adminUser.email);
-
-    await User.create({
+    const officerUser = await User.create({
       name: 'Officer Kumar',
       email: 'officer@cleanair.com',
       password: 'officer123',
       role: 'officer'
     });
-    console.log('Created officer user: officer@cleanair.com');
+    console.log('Created officer user:', officerUser.email);
 
     await User.create({
       name: 'Citizen Priya',
@@ -128,7 +120,7 @@ const seedDB = async () => {
     // Create reports
     const reportsWithUser = mockReports.map(r => ({
       ...r,
-      reportedBy: adminUser._id
+      reportedBy: officerUser._id
     }));
 
     await Report.insertMany(reportsWithUser);

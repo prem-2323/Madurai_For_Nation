@@ -67,11 +67,10 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-exports.getAdminAnalytics = async (req, res) => {
+exports.getOfficerAnalytics = async (req, res) => {
   try {
     const totalCitizens = await User.countDocuments({ role: 'citizen' });
     const totalOfficers = await User.countDocuments({ role: 'officer' });
-    const totalAdmins = await User.countDocuments({ role: 'admin' });
     const totalReports = await Report.countDocuments();
     const resolvedReports = await Report.countDocuments({ status: 'resolved' });
     const pendingReports = await Report.countDocuments({ status: 'pending' });
@@ -120,7 +119,7 @@ exports.getAdminAnalytics = async (req, res) => {
     ]);
 
     successResponse(res, {
-      users: { totalCitizens, totalOfficers, totalAdmins },
+      users: { totalCitizens, totalOfficers },
       reports: { totalReports, resolvedReports, pendingReports, inProgressReports },
       alerts: { activeAlerts, totalAlerts },
       reportsThisWeek,

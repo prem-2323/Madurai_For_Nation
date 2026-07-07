@@ -1,9 +1,13 @@
 const mongoose = require('mongoose');
 
 const reportSchema = new mongoose.Schema({
+  citizenId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  title: { type: String, default: '' },
   image: { type: String, default: '' },
   images: [{ type: String }],
+  imageData: { type: Buffer, default: null },
+  imageMimeType: { type: String, default: '' },
   category: { type: String, required: true, trim: true },
   description: { type: String, required: true, trim: true },
   severity: { type: String, enum: ['low', 'moderate', 'high', 'critical'], default: 'moderate' },
@@ -18,6 +22,7 @@ const reportSchema = new mongoose.Schema({
   needsMunicipalAction: { type: Boolean, default: false },
   possibleSource: { type: String, default: '' },
   priority: { type: String, default: 'Medium' },
+  officerRemarks: { type: String, default: '' },
   location: { type: String, required: true, trim: true },
   latitude: { type: Number, default: 0 },
   longitude: { type: Number, default: 0 },
@@ -31,7 +36,7 @@ const reportSchema = new mongoose.Schema({
   temperature: { type: Number, default: 0 },
   humidity: { type: Number, default: 0 },
   prediction: { type: String, default: '' },
-  status: { type: String, enum: ['pending', 'in_progress', 'resolved', 'rejected'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'verified', 'in_progress', 'resolved', 'rejected', 'Reported', 'AI Analyzed', 'Action Scheduled'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }
 });
 

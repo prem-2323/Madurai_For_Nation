@@ -1,52 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Upload, Camera, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Play } from 'lucide-react';
-
-interface PresetPhoto {
-  id: string;
-  name: string;
-  url: string;
-  category: string;
-  description: string;
-}
-
-export const PRESET_PHOTOS: PresetPhoto[] = [
-  {
-    id: 'pr-1',
-    name: 'Refinery Plume',
-    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
-    category: 'Industrial Emissions',
-    description: 'Thick smoke plume rising from industrial chimneys settled over local atmosphere.'
-  },
-  {
-    id: 'pr-2',
-    name: 'Wetland Litter',
-    url: 'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?auto=format&fit=crop&w=800&q=80',
-    category: 'Illegal Waste Dumping',
-    description: 'Abandoned plastic canisters and containers rotting in wild wetland preservation spaces.'
-  },
-  {
-    id: 'pr-3',
-    name: 'Highway Smog',
-    url: 'https://images.unsplash.com/photo-1506012787146-f92b2d7d6d96?auto=format&fit=crop&w=800&q=80',
-    category: 'Exhaust & Traffic Smog',
-    description: 'Thick brown nitrogen-dioxide smog hanging above major urban multi-lane highway interchanges.'
-  },
-  {
-    id: 'pr-4',
-    name: 'Redevelopment Dust',
-    url: 'https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?auto=format&fit=crop&w=800&q=80',
-    category: 'Construction Dust',
-    description: 'Dry concrete dust and topsoil blown from demolition site due to lack of wet suppression.'
-  },
-  {
-    id: 'pr-5',
-    name: 'Chemical Lake Runoff',
-    url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
-    category: 'Water Contamination',
-    description: 'Strange fluorescent green algae blooms and chemical sheen pooling on public lake boundaries.'
-  }
-];
+import { Upload, Camera, Trash2, Sparkles } from 'lucide-react';
 
 interface UploadCardProps {
   onImageSelected: (
@@ -63,11 +17,21 @@ export const UploadCard: React.FC<UploadCardProps> = ({
   onClear,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'camera' | 'presets'>('upload');
-  const [cameraState, setCameraState] = useState<'idle' | 'loading' | 'active' | 'captured'>('idle');
+  const [activeTab, setActiveTab] = useState<'upload' | 'camera'>('upload');
+  const [cameraState, setCameraState] = useState<'idle' | 'loading' | 'active'>('idle');
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  // Drag-and-drop handlers
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [stream]);
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -110,36 +74,79 @@ export const UploadCard: React.FC<UploadCardProps> = ({
     fileInputRef.current?.click();
   };
 
-  // Camera simulator
-  const startCamera = () => {
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraState('idle');
+  }, [stream]);
+
+  const startCamera = async () => {
     setCameraState('loading');
-    setTimeout(() => {
+    try {
+      let mediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      } catch {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      setStream(mediaStream);
       setCameraState('active');
-    }, 800);
+
+      requestAnimationFrame(() => {
+        const video = videoRef.current;
+        if (video) {
+          video.srcObject = mediaStream;
+          video.play().catch(() => {});
+        }
+      });
+    } catch (err) {
+      setCameraState('idle');
+      const msg = err instanceof DOMException && err.name === 'NotAllowedError'
+        ? 'Camera permission was denied. Please allow camera access in your browser settings and try again.'
+        : err instanceof DOMException && err.name === 'NotFoundError'
+          ? 'No camera found on this device.'
+          : 'Could not access camera: ' + err.message;
+      alert(msg);
+    }
   };
 
   const captureSnapshot = () => {
-    setCameraState('captured');
-    // Select a random sample preset URL as a simulated snapshot
-    const randomPreset = PRESET_PHOTOS[Math.floor(Math.random() * PRESET_PHOTOS.length)];
-    onImageSelected(randomPreset.url, {
-      category: randomPreset.category,
-      description: `[Camera Capture] Simulated live camera photograph containing signs of ${randomPreset.category.toLowerCase()}.`
-    });
-  };
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
 
-  const resetCamera = () => {
-    setCameraState('idle');
-    onClear();
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+
+    const byteString = atob(dataUrl.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    const blob = new Blob([ab], { type: 'image/jpeg' });
+    const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+
+    onImageSelected(dataUrl, { file, description: '[Camera Capture] Live photograph taken from device camera.' });
+    stopCamera();
   };
 
   return (
     <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden flex flex-col h-full shadow-xl">
       
-      {/* Upload Modes Tab Header */}
       <div className="flex bg-slate-900/60 border-b border-white/5 p-1 gap-1">
         <button
-          onClick={() => { setActiveTab('upload'); }}
+          onClick={() => { setActiveTab('upload'); if (cameraState !== 'idle') stopCamera(); }}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
             activeTab === 'upload'
               ? 'bg-slate-800 text-white border border-white/5 shadow-inner'
@@ -148,18 +155,6 @@ export const UploadCard: React.FC<UploadCardProps> = ({
         >
           <Upload className="w-4 h-4 text-primary" />
           <span>Upload File</span>
-        </button>
-
-        <button
-          onClick={() => { setActiveTab('presets'); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
-            activeTab === 'presets'
-              ? 'bg-slate-800 text-white border border-white/5 shadow-inner'
-              : 'text-muted-text hover:text-white hover:bg-slate-800/40'
-          }`}
-        >
-          <ImageIcon className="w-4 h-4 text-secondary" />
-          <span>Demo Presets</span>
         </button>
 
         <button
@@ -175,10 +170,8 @@ export const UploadCard: React.FC<UploadCardProps> = ({
         </button>
       </div>
 
-      {/* Main Upload / View Panel */}
       <div className="p-6 flex-1 flex flex-col justify-center min-h-[320px]">
         
-        {/* If Image is Selected, show Beautiful Preview */}
         {selectedImage ? (
           <div className="relative group w-full h-64 rounded-xl overflow-hidden border border-white/10 bg-slate-950/80">
             <img
@@ -187,26 +180,23 @@ export const UploadCard: React.FC<UploadCardProps> = ({
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
-            {/* Dark Hover overlay with Delete controls */}
             <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
               <button
                 onClick={() => {
                   onClear();
-                  if (activeTab === 'camera') setCameraState('idle');
+                  if (cameraState !== 'idle') stopCamera();
                 }}
                 className="p-3 rounded-full bg-danger hover:bg-red-600 text-white hover:scale-110 shadow-lg transition-all"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
-            {/* Small Sparkle Badge */}
             <div className="absolute bottom-3 left-3 bg-slate-900/90 border border-white/10 text-success text-[10px] px-2.5 py-1 rounded-lg font-mono flex items-center gap-1.5 backdrop-blur-md">
               <Sparkles className="w-3 h-3 text-success animate-pulse" />
               Image Loaded
             </div>
           </div>
         ) : (
-          /* TAB CONTENT FOR NO IMAGE CHOSEN */
           <div className="h-full">
             <AnimatePresence mode="wait">
               {activeTab === 'upload' && (
@@ -253,106 +243,68 @@ export const UploadCard: React.FC<UploadCardProps> = ({
                 </motion.div>
               )}
 
-              {activeTab === 'presets' && (
-                <motion.div
-                  key="presets"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-4"
-                >
-                  <div className="text-left mb-3">
-                    <span className="text-xs font-bold text-white block">Environmental Preset Library</span>
-                    <span className="text-[11px] text-muted-text">Select a high-resolution scenario to trigger the simulated AI model evaluation.</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[190px] overflow-y-auto pr-1">
-                    {PRESET_PHOTOS.map((photo) => (
-                      <div
-                        key={photo.id}
-                        onClick={() => onImageSelected(photo.url, { category: photo.category, description: photo.description })}
-                        className="flex items-center gap-3 p-2 bg-slate-900 border border-white/5 rounded-xl cursor-pointer hover:border-secondary/30 hover:bg-slate-800/55 transition-all text-left"
-                      >
-                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                          <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs font-bold text-white block truncate">{photo.name}</span>
-                          <span className="text-[9px] text-secondary font-semibold block truncate">{photo.category}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="p-3 bg-slate-900/50 rounded-xl border border-white/5 flex gap-2 items-center">
-                    <AlertCircle className="w-4 h-4 text-secondary shrink-0" />
-                    <span className="text-[10px] text-muted-text">Preset selection fills Category & Description automatically for convenient testing.</span>
-                  </div>
-                </motion.div>
-              )}
-
               {activeTab === 'camera' && (
                 <motion.div
                   key="camera"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="w-full h-64 border border-white/10 rounded-xl bg-slate-950 flex flex-col items-center justify-center text-center p-4 overflow-hidden relative"
+                  className="w-full h-64 border border-white/10 rounded-xl bg-slate-950 flex flex-col items-center justify-center text-center p-0 overflow-hidden relative"
                 >
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover ${cameraState === 'active' ? '' : 'hidden'}`}
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+
                   {cameraState === 'idle' && (
-                    <div className="space-y-4">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 p-4">
                       <div className="p-4 bg-rose-500/10 rounded-full text-rose-500 inline-block">
                         <Camera className="w-7 h-7" />
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-white block">Simulate Local Camera Module</span>
-                        <span className="text-[10px] text-muted-text block max-w-xs mt-1">Simulate snaps utilizing device permissions in AI Studio preview.</span>
+                        <span className="text-xs font-bold text-white block">Use Device Camera</span>
+                        <span className="text-[10px] text-muted-text block max-w-xs mt-1">Take a photo of the pollution using your device camera.</span>
                       </div>
                       <button
                         type="button"
                         onClick={startCamera}
                         className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-rose-600/10 transition-colors"
                       >
-                        Activate Camera Node
+                        Open Camera
                       </button>
                     </div>
                   )}
 
                   {cameraState === 'loading' && (
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin inline-block" />
-                      <span className="text-xs text-rose-500 font-bold block animate-pulse">Initializing CMOS lens...</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center space-y-3">
+                      <div className="w-10 h-10 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" />
+                      <span className="text-xs text-rose-500 font-bold block animate-pulse">Requesting camera access...</span>
                     </div>
                   )}
 
                   {cameraState === 'active' && (
-                    <div className="absolute inset-0 flex flex-col justify-between p-4 bg-slate-900">
-                      {/* Lens Scan HUD */}
+                    <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none">
                       <div className="flex items-center justify-between text-rose-500 text-[10px] font-mono">
-                        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" /> CAMERA_STREAMING</span>
-                        <span>RES: 1080P_SENS</span>
+                        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" /> CAMERA_LIVE</span>
                       </div>
-
-                      {/* Mock Lens crosshair */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-white/20 rounded-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
-                      </div>
-
-                      {/* Camera Capture buttons */}
-                      <div className="flex justify-center gap-3 z-10">
+                      <div className="flex justify-center gap-3 pointer-events-auto">
                         <button
                           type="button"
-                          onClick={resetCamera}
-                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[10px] font-semibold border border-white/5"
+                          onClick={stopCamera}
+                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold border border-white/5"
                         >
                           Cancel
                         </button>
                         <button
                           type="button"
                           onClick={captureSnapshot}
-                          className="flex items-center gap-1 px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-semibold shadow-lg shadow-rose-600/25"
+                          className="flex items-center gap-1 px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-rose-600/25"
                         >
-                          <Play className="w-3.5 h-3.5 fill-current" /> Capture Snap
+                          <Camera className="w-4 h-4" /> Capture
                         </button>
                       </div>
                     </div>

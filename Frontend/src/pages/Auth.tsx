@@ -14,7 +14,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'citizen' | 'officer' | 'admin'>('citizen');
+  const [role, setRole] = useState<'citizen' | 'officer'>('citizen');
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,7 +43,8 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         setSuccess('Authentication successful! Redirecting...');
         
         setTimeout(() => {
-          navigate(from, { replace: true });
+          const targetPath = user?.role === 'officer' ? '/officer/dashboard' : '/citizen/dashboard';
+          navigate(targetPath, { replace: true });
         }, 1500);
       } else {
         // Register
@@ -58,7 +59,8 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         setSuccess('Account created successfully! Redirecting...');
 
         setTimeout(() => {
-          navigate(from, { replace: true });
+          const targetPath = user?.role === 'officer' ? '/officer/dashboard' : '/citizen/dashboard';
+          navigate(targetPath, { replace: true });
         }, 1500);
       }
     } catch (err: any) {
@@ -178,8 +180,8 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           {!isLogin && (
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-text uppercase tracking-wider block">Access Role</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['citizen', 'officer', 'admin'] as const).map((r) => (
+              <div className="grid grid-cols-2 gap-2">
+                {(['citizen', 'officer'] as const).map((r) => (
                   <button
                     key={r}
                     type="button"

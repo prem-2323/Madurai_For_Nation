@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, select: false },
-  role: { type: String, enum: ['citizen', 'officer', 'admin'], default: 'citizen' },
+  role: { type: String, enum: ['citizen', 'officer'], default: 'citizen' },
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
   createdAt: { type: Date, default: Date.now }
 });
@@ -23,7 +23,7 @@ userSchema.methods.comparePassword = async function(password) {
 
 userSchema.methods.generateAuthToken = function() {
   return jwt.sign(
-    { id: this._id, role: this.role, name: this.name, email: this.email },
+    { userId: this._id, role: this.role, name: this.name, email: this.email },
     process.env.JWT_SECRET || 'fallback-secret',
     { expiresIn: '7d' }
   );

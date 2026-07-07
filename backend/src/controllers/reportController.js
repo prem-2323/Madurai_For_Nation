@@ -6,7 +6,7 @@ exports.createReport = async (req, res) => {
   try {
     const report = await Report.create({
       ...req.body,
-      reportedBy: req.user.id,
+      reportedBy: req.user._id,
       images: req.files?.map(f => f.path) || []
     });
 
@@ -28,6 +28,10 @@ exports.getReports = async (req, res) => {
     const query = {};
     if (status) query.status = status;
     if (category) query.category = category;
+
+    if (req.user && req.path === '/my' && req.user.role === 'citizen') {
+      query.reportedBy = req.user._id;
+    }
 
     if (map === 'true') {
       const reports = await Report.find(query)

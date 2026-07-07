@@ -228,7 +228,7 @@ export const Users: React.FC<UsersProps> = ({ token }) => {
               <div>
                 <label className="text-xs font-semibold text-muted-text block mb-1">Role</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['citizen', 'officer', 'admin'] as UserRole[]).map(r => (
+                  {(['citizen', 'officer'] as UserRole[]).map(r => (
                     <button key={r} onClick={() => setEditRole(r)}
                       className={`py-2 text-xs font-semibold rounded-lg capitalize border transition-all ${editRole === r ? 'border-secondary bg-secondary/15 text-white' : 'border-slate-800 bg-slate-950 text-muted-text hover:text-white'}`}>{r}</button>
                   ))}

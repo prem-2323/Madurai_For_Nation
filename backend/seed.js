@@ -56,8 +56,10 @@ async function seed() {
     cluster.reports.forEach((r, i) => {
       reportDocs.push({
         reportedBy: null,
-        image: 'uploads/seed-' + Date.now() + '.jpg',
+        image: '',
         images: [],
+        imageData: null,
+        imageMimeType: '',
         category: cluster.category,
         description: r.description,
         severity: r.severity,

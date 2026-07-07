@@ -1,3 +1,4 @@
+const sharp = require('sharp');
 const Report = require('../models/Report');
 const Alert = require('../models/Alert');
 const { analyzeImage } = require('../services/geminiVision');
@@ -17,6 +18,19 @@ exports.analyzePollution = async (req, res) => {
       return errorResponse(res, 'Image file is required', 400);
     }
 
+    let imageBuffer = req.file.buffer;
+    let imageMimeType = req.file.mimetype;
+    if (imageBuffer.length > 100 * 1024) {
+      const compressed = await sharp(imageBuffer)
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer();
+      if (compressed.length < imageBuffer.length) {
+        imageBuffer = compressed;
+        imageMimeType = 'image/jpeg';
+      }
+    }
+
     const latitude = parseFloat(req.body.latitude);
     const longitude = parseFloat(req.body.longitude);
     const description = req.body.description?.trim() || '';
@@ -26,7 +40,7 @@ exports.analyzePollution = async (req, res) => {
     }
 
     const [analysis, airQuality, prediction] = await Promise.all([
-      analyzeImage(req.file.path, req.file.mimetype, description),
+      analyzeImage(imageBuffer, imageMimeType, description),
       getAirQuality(latitude, longitude).catch((err) => {
         console.warn('AQI fetch failed:', err.message);
         return null;
@@ -37,15 +51,16 @@ exports.analyzePollution = async (req, res) => {
       }),
     ]);
 
-    const imagePath = `uploads/${req.file.filename}`;
     const locationLabel =
       req.body.location?.trim() ||
       `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
 
     const report = await Report.create({
       reportedBy: req.user?.id || null,
-      image: imagePath,
-      images: [imagePath],
+      image: '',
+      images: [],
+      imageData: imageBuffer,
+      imageMimeType: imageMimeType,
       category: analysis.pollutionType,
       description: description || analysis.reason || `AI-detected ${analysis.pollutionType}`,
       severity: normalizeSeverity(analysis.severity),
@@ -74,6 +89,10 @@ exports.analyzePollution = async (req, res) => {
       humidity: airQuality?.humidity ?? 0,
       status: 'pending'
     });
+
+    report.image = `/api/reports/${report._id}/image`;
+    report.images = [`/api/reports/${report._id}/image`];
+    await report.save();
 
     const currentAQI = airQuality?.aqi ?? 0;
     const predictedAQI = prediction?.predictedAQI ?? 0;
@@ -131,7 +150,7 @@ exports.analyzePollution = async (req, res) => {
         alertCreated,
         report: {
           id: report._id,
-          image: `/uploads/${req.file.filename}`,
+          image: `/api/reports/${report._id}/image`,
           latitude,
           longitude,
           location: locationLabel,

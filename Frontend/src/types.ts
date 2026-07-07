@@ -1,4 +1,4 @@
-export type UserRole = 'citizen' | 'officer' | 'admin';
+export type UserRole = 'citizen' | 'officer';
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 export type HotspotRisk = SeverityLevel;

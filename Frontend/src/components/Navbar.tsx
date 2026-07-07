@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Menu, X, Wind, Github, Shield, ShieldCheck, UserCheck } from 'lucide-react';
+import { Menu, X, Wind, Github, Shield, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getNavItemsForRole, getUserRole } from '../utils/role';
 
@@ -16,10 +16,14 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const role = getUserRole(user);
 
   const getRoleIcon = () => {
-    switch (role) {
-      case 'admin': return <ShieldCheck className="w-4 h-4 text-purple-400" />;
-      case 'officer': return <Shield className="w-4 h-4 text-blue-400" />;
-      default: return <UserCheck className="w-4 h-4 text-green-400" />;
+    const actualRole = role?.toLowerCase() || 'citizen';
+    switch (actualRole) {
+      case 'officer':
+        return <Shield className="w-4 h-4 text-blue-400" />;
+      case 'citizen':
+        return <UserCheck className="w-4 h-4 text-green-400" />;
+      default:
+        return <UserCheck className="w-4 h-4 text-green-400" />;
     }
   };
 
@@ -60,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             {/* Desktop Action */}
             <div className="hidden md:flex items-center gap-4">
               <a
-                href="https://github.com"
+                href="https://github.com/prem-2323/Madurai_For_Nation.git"
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-muted-text hover:text-white text-xs border border-white/5 transition-all"
@@ -74,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   {role && (
                     <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-slate-800 text-muted-text capitalize border border-slate-700">
                       {getRoleIcon()}
-                      {role}
+                      {role.toLowerCase()}
                     </span>
                   )}
                   <Link 
@@ -176,7 +180,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                     {role && (
                       <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-text font-semibold capitalize">
                         {getRoleIcon()}
-                        {role}
+                        {role.toLowerCase()}
                       </div>
                     )}
                     <Link

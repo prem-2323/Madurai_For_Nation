@@ -2,7 +2,7 @@ import type { UserRole } from '../types';
 
 export function getUserRole(user: any): UserRole | null {
   if (!user) return null;
-  if (user.role === 'citizen' || user.role === 'officer' || user.role === 'admin') {
+  if (user.role === 'citizen' || user.role === 'officer') {
     return user.role as UserRole;
   }
   if (user.role === 'user') return 'citizen';
@@ -19,12 +19,11 @@ export function isOfficer(user: any): boolean {
 }
 
 export function isAdmin(user: any): boolean {
-  return getUserRole(user) === 'admin';
+  return false;
 }
 
 export function isOfficerOrAdmin(user: any): boolean {
-  const role = getUserRole(user);
-  return role === 'officer' || role === 'admin';
+  return getUserRole(user) === 'officer';
 }
 
 export interface NavItem {
@@ -34,27 +33,23 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { name: 'Home', path: '/', roles: ['citizen', 'officer', 'admin'] },
-  { name: 'Report', path: '/report', roles: ['citizen'] },
-  { name: 'Dashboard', path: '/dashboard', roles: ['citizen', 'officer', 'admin'] },
-  { name: 'Map', path: '/map', roles: ['citizen', 'officer', 'admin'] },
-  { name: 'Hotspots', path: '/hotspots', roles: ['citizen', 'officer', 'admin'] },
-  { name: 'Alerts', path: '/alerts', roles: ['officer', 'admin'] },
-  { name: 'Prediction', path: '/prediction', roles: ['officer', 'admin'] },
-  { name: 'Analytics', path: '/analytics', roles: ['admin'] },
-  { name: 'Users', path: '/users', roles: ['admin'] },
-  { name: 'Settings', path: '/settings', roles: ['admin'] },
-  { name: 'Logs', path: '/logs', roles: ['admin'] },
-  { name: 'About', path: '/about', roles: ['citizen', 'officer', 'admin'] },
-  { name: 'Profile', path: '/profile', roles: ['citizen', 'officer', 'admin'] },
+  { name: 'Home', path: '/', roles: ['citizen', 'officer'] },
+  { name: 'Report Pollution', path: '/citizen/report', roles: ['citizen'] },
+  { name: 'My Reports', path: '/citizen/reports', roles: ['citizen'] },
+  { name: 'Hotspot Map', path: '/citizen/map', roles: ['citizen'] },
+  { name: 'AQI', path: '/citizen/aqi', roles: ['citizen'] },
+  { name: 'Profile', path: '/citizen/profile', roles: ['citizen'] },
+  { name: 'Dashboard', path: '/officer/dashboard', roles: ['officer'] },
+  { name: 'All Reports', path: '/officer/reports', roles: ['officer'] },
+  { name: 'Hotspot Map', path: '/officer/hotspots', roles: ['officer'] },
+  { name: 'Analytics', path: '/officer/analytics', roles: ['officer'] },
+  { name: 'Profile', path: '/officer/profile', roles: ['officer'] },
 ];
 
 export function getNavItemsForRole(user: any): NavItem[] {
   const role = getUserRole(user);
   if (!role) {
-    return NAV_ITEMS.filter(item =>
-      item.path === '/' || item.path === '/report' || item.path === '/dashboard' || item.path === '/map' || item.path === '/hotspots' || item.path === '/about'
-    );
+    return NAV_ITEMS.filter(item => item.path === '/');
   }
   return NAV_ITEMS.filter(item => item.roles.includes(role));
 }

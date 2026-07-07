@@ -34,7 +34,7 @@ export const Logs: React.FC<LogsProps> = ({ token }) => {
           _id: r._id,
           action: ['Report Submitted', 'AI Analysis Completed', 'Alert Generated', 'Status Updated'][i % 4],
           user: r.reportedBy?.name || 'Anonymous',
-          role: r.reportedBy?.role || 'citizen',
+          role: (r.reportedBy?.role === 'officer' ? 'officer' : 'citizen'),
           details: `${r.category} - ${r.severity} severity at ${r.location || 'unknown location'}`,
           level: (['info', 'success', 'warning', 'error'] as const)[i % 4],
           createdAt: r.createdAt,
