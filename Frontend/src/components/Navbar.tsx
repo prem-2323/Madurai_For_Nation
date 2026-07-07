@@ -14,6 +14,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
   const navItems = getNavItemsForRole(user);
   const role = getUserRole(user);
+  console.log('[NAVBAR] Current user role:', role, '| nav items count:', navItems.length);
 
   const getRoleIcon = () => {
     const actualRole = role?.toLowerCase() || 'citizen';

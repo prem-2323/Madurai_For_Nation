@@ -45,7 +45,10 @@ export default function App() {
   // Verify token and fetch/sync user profile on mount
   useEffect(() => {
     const verifyToken = async () => {
-      if (!token) return;
+      if (!token) {
+        console.log('[APP] No token found, skipping verification');
+        return;
+      }
       try {
         const response = await axios.get(`${API_BASE_URL}/api/auth/profile323`, {
           headers: {
@@ -53,10 +56,12 @@ export default function App() {
           }
         });
         const verifiedUser = response.data.data;
+        console.log('[APP] Token verification - verified user role:', verifiedUser?.role);
         // Update user with verified profile data (including correct role)
         setUser(verifiedUser);
         localStorage.setItem('user', JSON.stringify(verifiedUser));
       } catch (err) {
+        console.log('[APP] Token verification failed, logging out');
         // Clear session if verification fails
         handleLogout();
       }
@@ -78,12 +83,14 @@ export default function App() {
   }, [token]);
 
   const handleLoginSuccess = (loggedInUser: any, userToken: string) => {
+    console.log('[APP] handleLoginSuccess - received user role:', loggedInUser?.role);
     // Store the user object with their actual role from the response
     setUser(loggedInUser);
     setToken(userToken);
     localStorage.setItem('token', userToken);
     // Ensure the complete user object with role is stored
     localStorage.setItem('user', JSON.stringify(loggedInUser));
+    console.log('[APP] Stored in localStorage - user role:', loggedInUser?.role);
   };
 
   const handleLogout = () => {
@@ -155,7 +162,14 @@ export default function App() {
             <Route path="/logs" element={<ProtectedRoute user={user}><PageTransition><Logs token={token} /></PageTransition></ProtectedRoute>} />
             <Route path="/about" element={<PageTransition><About /></PageTransition>} />
             <Route path="/profile" element={<ProtectedRoute user={user}><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to={getUserRole(user) === 'officer' ? '/officer/dashboard' : user ? '/citizen/dashboard' : '/'} replace />} />
+            <Route path="*" element={
+              (() => {
+                const role = getUserRole(user);
+                const target = role === 'officer' ? '/officer/dashboard' : user ? '/citizen/dashboard' : '/';
+                console.log('[APP] Catch-all redirect - user role:', role, '| target:', target);
+                return <Navigate to={target} replace />;
+              })()
+            } />
           </Routes>
         </main>
 

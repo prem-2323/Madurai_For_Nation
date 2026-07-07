@@ -29,7 +29,9 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
             Authorization: `Bearer ${token}`
           }
         });
-        setProfile(response.data.data);
+        const fetchedProfile = response.data.data;
+        console.log('[PROFILE] Fetched profile - user role:', fetchedProfile?.role);
+        setProfile(fetchedProfile);
       } catch (err: any) {
         setError(
           err.response?.data?.message || 

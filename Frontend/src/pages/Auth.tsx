@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Lock, Mail, User, ShieldAlert, Sparkles, ArrowRight } from 'lucide-react';
 import axios from 'axios';
@@ -21,9 +21,20 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [success, setSuccess] = useState('');
 
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const handleTabSwitch = (toLogin: boolean) => {
+    setIsLogin(toLogin);
+    setError('');
+    setSuccess('');
+    if (!toLogin) {
+      setRole('citizen');
+    }
+  };
+
+  const navigateByRole = (user: any) => {
+    const targetPath = user?.role === 'officer' ? '/officer/dashboard' : '/citizen/dashboard';
+    navigate(targetPath, { replace: true });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,21 +44,17 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
     try {
       if (isLogin) {
-        // Log in
+        console.log('[AUTH] Submitting login for email:', email);
         const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
           email,
           password
         });
         const { user, token } = response.data.data;
+        console.log('[AUTH] Login response - user role:', user?.role);
         onLoginSuccess(user, token);
-        setSuccess('Authentication successful! Redirecting...');
-        
-        setTimeout(() => {
-          const targetPath = user?.role === 'officer' ? '/officer/dashboard' : '/citizen/dashboard';
-          navigate(targetPath, { replace: true });
-        }, 1500);
+        navigateByRole(user);
       } else {
-        // Register
+        console.log('[AUTH] Submitting register for email:', email, '| selected role:', role);
         const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
           name,
           email,
@@ -55,13 +62,9 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           role
         });
         const { user, token } = response.data.data;
+        console.log('[AUTH] Register response - user role:', user?.role, '| token present:', !!token);
         onLoginSuccess(user, token);
-        setSuccess('Account created successfully! Redirecting...');
-
-        setTimeout(() => {
-          const targetPath = user?.role === 'officer' ? '/officer/dashboard' : '/citizen/dashboard';
-          navigate(targetPath, { replace: true });
-        }, 1500);
+        navigateByRole(user);
       }
     } catch (err: any) {
       setError(
@@ -100,11 +103,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         {/* Tab switcher */}
         <div className="flex p-1 rounded-xl bg-slate-900 border border-slate-800 mb-6">
           <button
-            onClick={() => {
-              setIsLogin(true);
-              setError('');
-              setSuccess('');
-            }}
+            onClick={() => handleTabSwitch(true)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
               isLogin 
                 ? 'bg-slate-800 text-white shadow-sm' 
@@ -114,11 +113,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             Sign In
           </button>
           <button
-            onClick={() => {
-              setIsLogin(false);
-              setError('');
-              setSuccess('');
-            }}
+            onClick={() => handleTabSwitch(false)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
               !isLogin 
                 ? 'bg-slate-800 text-white shadow-sm' 
@@ -241,14 +236,14 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           {isLogin ? (
             <p>
               Don't have an account?{' '}
-              <button onClick={() => setIsLogin(false)} className="text-secondary hover:underline font-semibold">
+              <button onClick={() => handleTabSwitch(false)} className="text-secondary hover:underline font-semibold">
                 Register here
               </button>
             </p>
           ) : (
             <p>
               Already have an account?{' '}
-              <button onClick={() => setIsLogin(true)} className="text-secondary hover:underline font-semibold">
+              <button onClick={() => handleTabSwitch(true)} className="text-secondary hover:underline font-semibold">
                 Sign in here
               </button>
             </p>
