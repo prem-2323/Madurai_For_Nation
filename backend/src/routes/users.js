@@ -3,6 +3,8 @@ const { getUsers, getUserById, updateUser, deleteUser, getAdminAnalytics } = req
 const protect = require('../middleware/auth');
 const { adminOnly } = require('../middleware/rbac');
 
+
+
 const router = express.Router();
 
 router.get('/analytics', protect, adminOnly, getAdminAnalytics);
