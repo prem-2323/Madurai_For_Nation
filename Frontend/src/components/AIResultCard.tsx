@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { AIAnalysisResult, AirQualityData } from '../types';
 
+
 interface AIResultCardProps {
   isLoading: boolean;
   isAnalyzed: boolean;
