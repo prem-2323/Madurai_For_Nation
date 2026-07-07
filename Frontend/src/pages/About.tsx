@@ -63,13 +63,13 @@ export const About: React.FC = () => {
     { title: 'Framer Motion', desc: 'Seamless, physics-based page and modal transition engines' },
     { title: 'Lucide Icons', desc: 'Clean vector graphics representation' },
     { title: 'Gemini Vision', desc: 'Image profile matching and clinical severity grading' },
-    { title: 'REST API Ready', desc: 'Mock Axios requests configured for full-stack deployment' }
+    { title: 'REST API Ready', desc: 'Axios requests configured for full-stack deployment' }
   ];
 
   const team = [
     { name: 'Dr. Clara Vance', role: 'Principal Climate Scientist', bio: 'Former NOAA researcher specializing in particulate atmospheric dispersion models.' },
     { name: 'Xavier Cole', role: 'Lead Computer Vision Architect', bio: 'Expert in neural image networks, previously developing geospatial drone vision systems.' },
-    { name: 'Amara Lopez', role: 'Municipal Operations Director', bio: 'Former Deputy CIO for Seattle City Planning, optimizing 311 incident logistics.' }
+    { name: 'Amara Lopez', role: 'Municipal Operations Director', bio: 'Former Deputy CIO for City Planning, optimizing 311 incident logistics.' }
   ];
 
   return (
@@ -247,7 +247,7 @@ export const About: React.FC = () => {
             </li>
             <li className="flex items-start gap-3 text-xs text-muted-text">
               <MapPin className="w-4.5 h-4.5 text-secondary shrink-0 mt-0.5" />
-              <span>700 5th Ave, Suite 3400, Seattle, WA 98104</span>
+              <span>Madurai, Tamil Nadu, India</span>
             </li>
           </ul>
         </div>

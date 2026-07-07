@@ -14,10 +14,7 @@ export const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ reports }) => {
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [locationSearch, setLocationSearch] = useState('');
 
-  // Coordinate projection boundaries (Seattle Region)
-  // Max/Min coordinates based on our dummy data to map onto standard SVG coordinates:
-  // Lat range: 47.15 to 47.75
-  // Lng range: -122.40 to -121.95
+  // Coordinate projection boundaries for the map view
   const mapBounds = {
     minLat: 47.15,
     maxLat: 47.75,
@@ -180,7 +177,7 @@ export const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ reports }) => {
         {/* Background stylized grid pattern representing map coordinates */}
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
         
-        {/* Mock Seattle Coastal Outline (Sleek minimalist glowing paths) */}
+        {/* Decorative map background outline */}
         <svg className="absolute inset-0 w-full h-full text-slate-800/40 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
           {/* Simulated Puget Sound / Elliott Bay outline on Left */}
           <path d="M 0,0 Q 150,150 120,300 T 50,550 T 0,620 L 0,0 Z" fill="rgba(14, 165, 233, 0.015)" stroke="rgba(14, 165, 233, 0.08)" strokeWidth="2" strokeDasharray="5,5" />

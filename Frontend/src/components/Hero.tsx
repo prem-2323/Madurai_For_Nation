@@ -73,7 +73,7 @@ export const Hero: React.FC = () => {
 
           </div>
 
-          {/* Right Hero Illustration / Interactive Mockup */}
+          {/* Right Hero Illustration */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -83,7 +83,7 @@ export const Hero: React.FC = () => {
             {/* Ambient Outer Glow */}
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-secondary/15 rounded-3xl filter blur-xl opacity-70 pointer-events-none" />
             
-            {/* Main Interactive Map Mockup Card */}
+            {/* Main Interactive Map Card */}
             <div className="w-full max-w-[420px] glass-panel rounded-3xl border border-white/10 p-6 shadow-2xl relative overflow-hidden">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/5">
                 <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export const Hero: React.FC = () => {
                 </span>
               </div>
 
-              {/* Mock Map Radar Sweep Graphic */}
+              {/* Map Radar Sweep Graphic */}
               <div className="h-64 rounded-xl bg-slate-950/90 relative overflow-hidden border border-white/5 flex items-center justify-center">
                 
                 {/* Radar Scanline */}
@@ -139,7 +139,7 @@ export const Hero: React.FC = () => {
                 {/* Radar Label Overlay */}
                 <div className="absolute bottom-3 left-3 flex flex-col gap-1 z-10">
                   <span className="text-[10px] font-mono text-muted-text flex items-center gap-1 bg-slate-900/90 px-1.5 py-0.5 rounded border border-white/5">
-                    <Map className="w-3 h-3 text-secondary" /> Seattle Urban Center
+                    <Map className="w-3 h-3 text-secondary" /> Madurai Urban Center
                   </span>
                 </div>
               </div>
