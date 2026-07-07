@@ -1,5 +1,6 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
+const Alert = require('../models/Alert');
 const { successResponse, errorResponse } = require('../utils/response');
 
 exports.getStats = async (req, res) => {
@@ -9,6 +10,8 @@ exports.getStats = async (req, res) => {
     const inProgressReports = await Report.countDocuments({ status: 'in_progress' });
     const resolvedReports = await Report.countDocuments({ status: 'resolved' });
     const totalUsers = await User.countDocuments();
+    const totalAlerts = await Alert.countDocuments();
+    const pendingAlerts = await Alert.countDocuments({ status: 'Pending' });
 
     const categoryStats = await Report.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 } } }
@@ -30,6 +33,8 @@ exports.getStats = async (req, res) => {
       inProgressReports,
       resolvedReports,
       totalUsers,
+      totalAlerts,
+      pendingAlerts,
       categoryStats,
       monthlyStats
     });

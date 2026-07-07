@@ -1,4 +1,5 @@
 const Report = require('../models/Report');
+const { generateHotspots } = require('../services/hotspotEngine');
 const { successResponse, errorResponse } = require('../utils/response');
 
 exports.createReport = async (req, res) => {
@@ -8,6 +9,13 @@ exports.createReport = async (req, res) => {
       reportedBy: req.user.id,
       images: req.files?.map(f => f.path) || []
     });
+
+    try {
+      await generateHotspots();
+    } catch (hotspotError) {
+      console.error('Error generating hotspots after report create:', hotspotError);
+    }
+
     successResponse(res, report, 'Report created successfully', 201);
   } catch (error) {
     errorResponse(res, error.message, 500);
@@ -80,6 +88,13 @@ exports.updateReport = async (req, res) => {
   try {
     const report = await Report.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!report) return errorResponse(res, 'Report not found', 404);
+
+    try {
+      await generateHotspots();
+    } catch (hotspotError) {
+      console.error('Error generating hotspots after report update:', hotspotError);
+    }
+
     successResponse(res, report, 'Report updated successfully');
   } catch (error) {
     errorResponse(res, error.message, 500);
@@ -101,6 +116,13 @@ exports.updateReportStatus = async (req, res) => {
     ).populate('reportedBy', 'name email');
 
     if (!report) return errorResponse(res, 'Report not found', 404);
+
+    try {
+      await generateHotspots();
+    } catch (hotspotError) {
+      console.error('Error generating hotspots after status update:', hotspotError);
+    }
+
     successResponse(res, report, 'Report status updated successfully');
   } catch (error) {
     errorResponse(res, error.message, 500);
@@ -111,6 +133,13 @@ exports.deleteReport = async (req, res) => {
   try {
     const report = await Report.findByIdAndDelete(req.params.id);
     if (!report) return errorResponse(res, 'Report not found', 404);
+
+    try {
+      await generateHotspots();
+    } catch (hotspotError) {
+      console.error('Error generating hotspots after report delete:', hotspotError);
+    }
+
     successResponse(res, null, 'Report deleted successfully');
   } catch (error) {
     errorResponse(res, error.message, 500);

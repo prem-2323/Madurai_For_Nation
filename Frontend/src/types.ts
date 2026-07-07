@@ -1,6 +1,7 @@
 export type UserRole = 'citizen' | 'officer' | 'admin';
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
+export type HotspotRisk = SeverityLevel;
 export type ReportStatus = 'Reported' | 'AI Analyzed' | 'Action Scheduled' | 'Resolved';
 
 export interface AirQualityData {
@@ -80,6 +81,27 @@ export interface PollutionReport {
   airQuality?: AirQualityData;
   reporter?: string;
   backendStatus?: string;
+}
+
+export interface PollutionHotspot {
+  id: string;
+  center: {
+    lat: number;
+    lng: number;
+  };
+  radius: number;
+  reportCount: number;
+  averageAQI: number;
+  averageConfidence: number;
+  dominantPollution: string;
+  highestSeverity: SeverityLevel;
+  recommendedAction: string;
+  risk: HotspotRisk;
+  status: string;
+  location: string;
+  assignedTeam?: string | null;
+  createdAt: string;
+  sourceReportIds?: string[];
 }
 
 export interface StatCardData {

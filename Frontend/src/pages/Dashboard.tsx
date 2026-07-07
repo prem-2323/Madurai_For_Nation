@@ -10,7 +10,9 @@ import { AirQualityCard } from '../components/AirQualityCard';
 import { CATEGORIES } from '../data';
 import { fetchPrediction } from '../api/prediction';
 import { fetchAlerts } from '../api/alerts';
+import { fetchHotspots } from '../api/hotspots';
 import { AlertData } from '../types';
+import type { PollutionHotspot } from '../types';
 import { Link } from 'react-router-dom';
 import { isOfficerOrAdmin, isAdmin, isOfficer } from '../utils/role';
 
@@ -35,10 +37,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [predictionLoading, setPredictionLoading] = useState(true);
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [alerts, setAlerts] = useState<AlertData[]>([]);
+  const [hotspots, setHotspots] = useState<PollutionHotspot[]>([]);
   
   useEffect(() => {
     fetchAlerts().then(setAlerts).catch(() => console.error('Failed to load alerts'));
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadHotspots = async () => {
+      try {
+        const data = await fetchHotspots(token);
+        if (isMounted) {
+          setHotspots(data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Failed to load hotspots', error);
+          setHotspots([]);
+        }
+      }
+    };
+
+    loadHotspots();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token, reports]);
 
   useEffect(() => {
     let isMounted = true;
@@ -115,8 +142,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       currentAqiLevel,
       highestPm25,
       criticalAreas,
+      activeHotspots: hotspots.length,
     };
-  }, [reports]);
+  }, [reports, hotspots]);
 
   // 2. DYNAMIC CHART DATA COMPILATION (SVG-based rendering)
   const categoryChartData = useMemo(() => {
@@ -271,7 +299,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </Link>
 
       {/* TOP STATISTICS CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         <StatCard title="Current AQI" value={prediction?.currentAQI ?? stats.avgAqi ?? '—'} iconName="Wind" color="info" />
         <StatCard
           title="Air Quality"
@@ -281,6 +309,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         />
         <StatCard title="Highest PM2.5" value={prediction?.currentPM25 ? `${prediction.currentPM25.toFixed(1)} μg/m³` : (stats.highestPm25 ? `${stats.highestPm25} μg/m³` : '—')} iconName="ShieldAlert" color="danger" />
         <StatCard title="Critical Areas" value={stats.criticalAreas} iconName="MapPin" color="secondary" />
+        <Link to="/hotspots" className="block">
+          <StatCard title="Active Hotspots" value={stats.activeHotspots} iconName="Flame" color="danger" />
+        </Link>
         <StatCard
           title="24h Forecast"
           value={prediction ? `${prediction.predictedAQI}` : '—'}

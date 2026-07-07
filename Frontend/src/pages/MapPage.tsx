@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PollutionMap } from '../components/PollutionMap';
-import { PollutionReport } from '../types';
+import { PollutionHotspot, PollutionReport } from '../types';
 import { Map, ShieldCheck } from 'lucide-react';
 import { fetchMapReports } from '../api/reports';
+import { fetchHotspots } from '../api/hotspots';
 
 interface MapPageProps {
   reports?: PollutionReport[];
@@ -11,6 +12,7 @@ interface MapPageProps {
 
 export const MapPage: React.FC<MapPageProps> = ({ reports: fallbackReports = [], token }) => {
   const [reports, setReports] = useState<PollutionReport[]>(fallbackReports);
+  const [hotspots, setHotspots] = useState<PollutionHotspot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,18 +24,36 @@ export const MapPage: React.FC<MapPageProps> = ({ reports: fallbackReports = [],
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchMapReports(token);
-      setReports(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load reports';
-      setError(message);
-      if (fallbackReports.length > 0) {
+      const [reportResult, hotspotResult] = await Promise.allSettled([
+        fetchMapReports(token),
+        fetchHotspots(token),
+      ]);
+
+      let nextError: string | null = null;
+
+      if (reportResult.status === 'fulfilled') {
+        setReports(reportResult.value);
+      } else if (fallbackReports.length > 0) {
         setReports(fallbackReports);
+        nextError = reportResult.reason instanceof Error ? reportResult.reason.message : 'Failed to load reports';
+      } else {
+        nextError = reportResult.reason instanceof Error ? reportResult.reason.message : 'Failed to load reports';
       }
+
+      if (hotspotResult.status === 'fulfilled') {
+        setHotspots(hotspotResult.value);
+      } else {
+        setHotspots([]);
+        if (!nextError) {
+          nextError = hotspotResult.reason instanceof Error ? hotspotResult.reason.message : 'Failed to load hotspots';
+        }
+      }
+
+      setError(nextError);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, fallbackReports]);
 
   useEffect(() => {
     loadReports();
@@ -63,7 +83,7 @@ export const MapPage: React.FC<MapPageProps> = ({ reports: fallbackReports = [],
         </div>
       </div>
 
-      <PollutionMap reports={reports} loading={loading} error={error} onRefresh={loadReports} />
+      <PollutionMap reports={reports} hotspots={hotspots} loading={loading} error={error} onRefresh={loadReports} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-5 rounded-2xl bg-card-dark border border-slate-800 space-y-2">
@@ -83,10 +103,10 @@ export const MapPage: React.FC<MapPageProps> = ({ reports: fallbackReports = [],
         </div>
 
         <div className="p-5 rounded-2xl bg-card-dark border border-slate-800 space-y-2">
-          <span className="text-xs font-bold text-white block">Municipal Action</span>
+          <span className="text-xs font-bold text-white block">Hotspot Detection Engine</span>
           <p className="text-xs text-muted-text leading-relaxed">
-            Click any marker to view the pollution image, AQI reading, reporter details, and AI-generated
-            recommendations for municipal crews to take action.
+            Hotspots are automatically clustered from reports in the last 24 hours and shown as semi-transparent
+            circles with response guidance for municipal crews.
           </p>
         </div>
       </div>

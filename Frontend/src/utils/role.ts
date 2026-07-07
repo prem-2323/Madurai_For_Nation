@@ -38,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Report', path: '/report', roles: ['citizen'] },
   { name: 'Dashboard', path: '/dashboard', roles: ['citizen', 'officer', 'admin'] },
   { name: 'Map', path: '/map', roles: ['citizen', 'officer', 'admin'] },
+  { name: 'Hotspots', path: '/hotspots', roles: ['citizen', 'officer', 'admin'] },
   { name: 'Alerts', path: '/alerts', roles: ['officer', 'admin'] },
   { name: 'Prediction', path: '/prediction', roles: ['officer', 'admin'] },
   { name: 'Analytics', path: '/analytics', roles: ['admin'] },
@@ -52,7 +53,7 @@ export function getNavItemsForRole(user: any): NavItem[] {
   const role = getUserRole(user);
   if (!role) {
     return NAV_ITEMS.filter(item =>
-      item.path === '/' || item.path === '/report' || item.path === '/dashboard' || item.path === '/map' || item.path === '/about'
+      item.path === '/' || item.path === '/report' || item.path === '/dashboard' || item.path === '/map' || item.path === '/hotspots' || item.path === '/about'
     );
   }
   return NAV_ITEMS.filter(item => item.roles.includes(role));

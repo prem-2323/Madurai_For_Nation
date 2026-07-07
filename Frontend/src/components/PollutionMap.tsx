@@ -1,12 +1,13 @@
 ﻿import React, { useMemo, useState } from 'react';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L, { divIcon } from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat.js';
 import 'leaflet/dist/leaflet.css';
 import { AlertCircle, Calendar, Filter, Info, LocateFixed, MapPin, Search, ShieldAlert } from 'lucide-react';
-import { PollutionReport, SeverityLevel } from '../types';
+import { PollutionHotspot, PollutionReport, SeverityLevel } from '../types';
 import { CATEGORIES } from '../data';
 import { formatReportStatus, getMarkerColor } from '../utils/reportTransform';
+import { formatHotspotTimestamp, resolveHotspotBadgeColor } from '../utils/hotspotTransform';
 
 const MADURAI_CENTER: [number, number] = [9.9252, 78.1198];
 const DEFAULT_ZOOM = 13;
@@ -20,6 +21,7 @@ const HEAT_GRADIENT = {
 
 interface PollutionMapProps {
   reports: PollutionReport[];
+  hotspots?: PollutionHotspot[];
   loading?: boolean;
   error?: string | null;
   onRefresh?: () => void;
@@ -143,8 +145,14 @@ function PopupStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, loading, error, onRefresh }) => {
+function getHotspotPopupBackground(risk: SeverityLevel): string {
+  const color = resolveHotspotBadgeColor(risk);
+  return color;
+}
+
+export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = [], loading, error, onRefresh }) => {
   const [selectedReport, setSelectedReport] = useState<PollutionReport | null>(null);
+  const [selectedHotspot, setSelectedHotspot] = useState<PollutionHotspot | null>(null);
   const [severityFilter, setSeverityFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [locationSearch, setLocationSearch] = useState('');
@@ -197,6 +205,8 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, loading, er
       weightBySeverity[report.severity] ?? 0.5,
     ] as [number, number, number]);
   }, [filteredReports]);
+
+  const hotspotCount = hotspots.length;
 
   const handleLocateMe = () => {
     setLocationMessage(null);
@@ -354,6 +364,12 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, loading, er
               {filteredReports.length} / {reports.length}
             </strong>
           </div>
+          <div className="flex items-center justify-between text-xs text-muted-text">
+            <span>Active Hotspots</span>
+            <strong className="text-white font-mono bg-slate-950 px-2 py-0.5 rounded border border-white/5">
+              {hotspotCount}
+            </strong>
+          </div>
           {onRefresh && (
             <button
               onClick={onRefresh}
@@ -466,6 +482,77 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, loading, er
               </Marker>
             ))
           )}
+
+          {hotspots.map((hotspot) => {
+            const hotspotColor = getHotspotPopupBackground(hotspot.risk);
+            const isSelected = selectedHotspot?.id === hotspot.id;
+
+            return (
+              <Circle
+                key={hotspot.id}
+                center={[hotspot.center.lat, hotspot.center.lng]}
+                radius={hotspot.radius}
+                pathOptions={{
+                  color: hotspotColor,
+                  fillColor: hotspotColor,
+                  fillOpacity: isSelected ? 0.3 : 0.2,
+                  opacity: isSelected ? 0.9 : 0.75,
+                  weight: isSelected ? 2.5 : 1.5,
+                }}
+                eventHandlers={{
+                  click: () => setSelectedHotspot(hotspot),
+                }}
+              >
+                <Popup
+                  closeButton
+                  autoPan
+                  keepInView
+                  eventHandlers={{
+                    remove: () => setSelectedHotspot((current) => (current?.id === hotspot.id ? null : current)),
+                  }}
+                >
+                  <div className="min-w-[280px] max-w-sm text-slate-900 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 leading-tight">Pollution Hotspot</h4>
+                        <p className="text-[11px] text-slate-600 mt-1">Automatic cluster from the last 24 hours</p>
+                      </div>
+                      <span
+                        className="px-2 py-1 rounded-full text-[10px] font-bold text-white"
+                        style={{ backgroundColor: hotspotColor }}
+                      >
+                        {hotspot.risk}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <PopupStat label="Reports" value={`${hotspot.reportCount}`} />
+                      <PopupStat label="Average AQI" value={`${hotspot.averageAQI}`} />
+                      <PopupStat label="Dominant" value={hotspot.dominantPollution} />
+                      <PopupStat label="Severity" value={hotspot.highestSeverity} />
+                      <PopupStat label="Confidence" value={`${hotspot.averageConfidence}%`} />
+                      <PopupStat label="Status" value={hotspot.status} />
+                    </div>
+
+                    <div className="space-y-2 text-[11px] text-slate-700 border-t border-slate-200 pt-3">
+                      <div className="flex items-start gap-2">
+                        <Calendar className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
+                        <span>{formatHotspotTimestamp(hotspot.createdAt)}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldAlert className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
+                        <span>{hotspot.recommendedAction}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-3.5 h-3.5 mt-0.5 text-slate-500 shrink-0" />
+                        <span>Radius {Math.round(hotspot.radius)} m</span>
+                      </div>
+                    </div>
+                  </div>
+                </Popup>
+              </Circle>
+            );
+          })}
 
           <MapFlyTo position={userLocation} />
           <UserLocationLayer position={userLocation} />

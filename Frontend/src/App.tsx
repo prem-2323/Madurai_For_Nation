@@ -11,6 +11,7 @@ import { Home } from './pages/Home';
 import { Report } from './pages/Report';
 import { Dashboard } from './pages/Dashboard';
 import { MapPage } from './pages/MapPage';
+import { HotspotsPage } from './pages/Hotspots';
 import { Alerts } from './pages/Alerts';
 import { About } from './pages/About';
 import { Auth } from './pages/Auth';
@@ -128,6 +129,7 @@ export default function App() {
             <Route path="/report" element={<ProtectedRoute path="/report"><PageTransition><Report onAddReport={handleAddReport} token={token} /></PageTransition></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute path="/dashboard"><PageTransition><Dashboard reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></ProtectedRoute>} />
             <Route path="/map" element={<ProtectedRoute path="/map"><PageTransition><MapPage reports={reports} token={token} /></PageTransition></ProtectedRoute>} />
+            <Route path="/hotspots" element={<ProtectedRoute path="/hotspots"><PageTransition><HotspotsPage token={token} user={user} /></PageTransition></ProtectedRoute>} />
             <Route path="/alerts" element={<ProtectedRoute path="/alerts"><PageTransition><Alerts token={token} user={user} /></PageTransition></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute path="/analytics"><PageTransition><AdminAnalytics token={token} /></PageTransition></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute path="/users"><PageTransition><Users token={token} /></PageTransition></ProtectedRoute>} />

@@ -5,6 +5,7 @@ const { getAirQuality } = require('../services/aqiService');
 const { build24HourPrediction } = require('../services/predictionService');
 const { normalizeSeverity } = require('../utils/pollutionPrompt');
 const { successResponse, errorResponse } = require('../utils/response');
+const { generateHotspots } = require('../services/hotspotEngine');
 
 exports.analyzePollution = async (req, res) => {
   try {
@@ -80,6 +81,8 @@ exports.analyzePollution = async (req, res) => {
     const priority = analysis.priority ?? 'Medium';
     const needsMunicipalAction = analysis.needsMunicipalAction === true;
 
+    let alertCreated = false;
+
     if (
       confidence >= 80 || 
       currentAQI >= 180 || 
@@ -90,27 +93,33 @@ exports.analyzePollution = async (req, res) => {
     ) {
       const getAction = (type) => {
         const typeLower = (type || '').toLowerCase();
-        if (typeLower.includes('garbage')) return '🚒 Deploy Fire & Cleanup Team';
-        if (typeLower.includes('vehicle')) return '🚦 Traffic Diversion';
-        if (typeLower.includes('industrial') || typeLower.includes('factory')) return '🏭 Inspect Factory';
-        if (typeLower.includes('construction') || typeLower.includes('dust')) return '💦 Deploy Water Mist Cannon';
-        if (typeLower.includes('water')) return '🚰 Water Quality Inspection';
-        return '🚓 Dispatch General Inspection Team';
+        if (typeLower.includes('garbage')) return 'Deploy Fire & Cleanup Team';
+        if (typeLower.includes('vehicle')) return 'Traffic Diversion';
+        if (typeLower.includes('industrial') || typeLower.includes('factory')) return 'Send Pollution Control Inspection';
+        if (typeLower.includes('construction') || typeLower.includes('dust')) return 'Deploy Water Mist Cannon';
+        if (typeLower.includes('water')) return 'Water Quality Inspection';
+        return 'Dispatch General Inspection Team';
       };
 
       const alertPriority = (priority === 'Critical' || priority === 'High') ? priority : (confidence >= 80 || needsMunicipalAction) ? 'High' : 'Medium';
       
-      await Alert.create({
-        reportId: report._id,
-        location: locationLabel,
-        pollutionType: analysis.pollutionType || 'Unknown',
-        aqi: currentAQI,
-        predictedAQI,
-        severity: confidence,
-        priority: alertPriority,
-        reason: analysis.reason || 'High pollution levels detected',
-        suggestedAction: getAction(analysis.pollutionType)
-      });
+      const existingAlert = await Alert.findOne({ reportId: report._id });
+      if (!existingAlert) {
+        await Alert.create({
+          reportId: report._id,
+          pollutionType: analysis.pollutionType || 'Unknown',
+          location: locationLabel,
+          latitude,
+          longitude,
+          AQI: currentAQI,
+          predictedAQI,
+          confidence,
+          priority: alertPriority,
+          reason: analysis.reason || 'High pollution levels detected',
+          suggestedAction: getAction(analysis.pollutionType)
+        });
+        alertCreated = true;
+      }
     }
 
 
@@ -119,6 +128,7 @@ exports.analyzePollution = async (req, res) => {
       {
         analysis,
         airQuality,
+        alertCreated,
         report: {
           id: report._id,
           image: `/uploads/${req.file.filename}`,
@@ -131,6 +141,12 @@ exports.analyzePollution = async (req, res) => {
       'Image analyzed successfully',
       201
     );
+
+    try {
+      await generateHotspots();
+    } catch (hotspotError) {
+      console.error('Error generating hotspots after analysis:', hotspotError);
+    }
   } catch (error) {
     console.error('Analyze error:', error.message);
     errorResponse(res, error.message || 'Failed to analyze image', 500);
