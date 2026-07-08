@@ -34,7 +34,6 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { name: 'Home', path: '/', roles: ['citizen', 'officer'] },
   { name: 'Report Pollution', path: '/citizen/report', roles: ['citizen'] },
   { name: 'My Reports', path: '/citizen/reports', roles: ['citizen'] },
   { name: 'Hotspot Map', path: '/citizen/map', roles: ['citizen'] },

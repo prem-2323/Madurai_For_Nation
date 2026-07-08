@@ -434,7 +434,7 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
           center={MADURAI_CENTER}
           zoom={DEFAULT_ZOOM}
           scrollWheelZoom
-          className="w-full h-full"
+          className="w-full h-full z-0"
           attributionControl
           whenReady={(event) => {
             event.target.setView(MADURAI_CENTER, DEFAULT_ZOOM);

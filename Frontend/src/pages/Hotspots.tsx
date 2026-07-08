@@ -361,7 +361,7 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
               {error}
             </div>
           )}
-          <MapContainer center={MADURAI_CENTER} zoom={DEFAULT_ZOOM} scrollWheelZoom className="w-full h-full">
+          <MapContainer center={MADURAI_CENTER} zoom={DEFAULT_ZOOM} scrollWheelZoom className="w-full h-full z-0">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
