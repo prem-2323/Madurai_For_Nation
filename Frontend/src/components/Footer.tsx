@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Wind, Mail, Phone, MapPin, Github, Twitter, Linkedin } from 'lucide-react';
+import { Wind, Mail, Phone, MapPin, Github, Linkedin } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -27,13 +27,10 @@ export const Footer: React.FC = () => {
               An advanced, hyperlocal climate intelligence and pollution monitoring network. Empowering citizens and municipalities to safeguard clean air using AI-assisted imagery and spatial analytics.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-[#1DA1F2] transition-all duration-300">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-[#0A66C2] transition-all duration-300">
+              <a href="https://www.linkedin.com/in/premm2323" target="_blank" rel="noreferrer" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-[#0A66C2] transition-all duration-300">
                 <Linkedin className="w-5 h-5" />
               </a>
-              <a href="#" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-white transition-all duration-300">
+              <a href="https://github.com/prem-2323/Madurai_For_Nation.git" target="_blank" rel="noreferrer" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-white transition-all duration-300">
                 <Github className="w-5 h-5" />
               </a>
             </div>
@@ -67,15 +64,18 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-muted-text">
                 <Mail className="w-4 h-4 text-secondary" />
-                <a href="mailto:response@cleanair.ai" className="hover:text-white transition-colors">response@cleanair.ai</a>
+                <a href="mailto:premkalai2006@gmail.com" className="hover:text-white transition-colors">premkalai2006@gmail.com</a>
               </li>
               <li className="flex items-center gap-2.5 text-muted-text">
                 <Phone className="w-4 h-4 text-secondary" />
-                <span>+1 (206) 555-0143</span>
+                <span>9894503899</span>
               </li>
               <li className="flex items-start gap-2.5 text-muted-text">
                 <MapPin className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
                 <span>Madurai, Tamil Nadu, India</span>
+              </li>
+              <li className="text-muted-text">
+                <span className="font-medium text-white">Team:</span> Global Impact Challenge
               </li>
             </ul>
           </div>
@@ -102,7 +102,7 @@ export const Footer: React.FC = () => {
 
         {/* Footer Bottom */}
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-text">
-          <p>© {currentYear} CleanAir AI. Built for municipal action. All rights reserved.</p>
+          <p>© {currentYear} CleanAir AI. Built by Global Impact Challenge for municipal action. All rights reserved.</p>
           <p>
             Disclaimer: AI-assisted assessments are simulated for planning and educational demonstration purposes.
           </p>

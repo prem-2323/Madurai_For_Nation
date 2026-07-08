@@ -4,6 +4,14 @@
 
 A full-stack application that enables citizens to report pollution incidents with AI-powered photo analysis, and provides municipal officers with tools to manage, track, and respond to environmental issues in real-time.
 
+## Problem Statement
+
+City-level air quality apps often miss hyper-local events such as garbage dump fires, industrial clusters, and smog traps at busy junctions because local authorities cannot monitor every street in real time. These small but intense pollution pockets often go unnoticed while directly affecting nearby residents.
+
+## Solution Overview
+
+Madurai For Nation addresses this gap by combining citizen-uploaded pollution photos, location-based air quality data, AI analysis, hotspot detection, and predictive insights into a neighborhood-level pollution map. The system helps municipal teams identify hidden hotspots early, forecast air quality spikes over the next 24 hours, and deploy targeted interventions such as cleanup crews, water-mist cannons, and inspections exactly where they are needed.
+
 ---
 
 ## Architecture

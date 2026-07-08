@@ -24,6 +24,15 @@ const SCAN_MESSAGES = [
 
 interface ReportProps { onAddReport: (report: PollutionReport) => void; token?: string | null; }
 
+const SAMPLE_IMAGES = [
+  { file: 'Construction dust.jpg', category: 'Construction Dust', coords: { lat: 9.9345, lng: 78.1056 }, loc: 'KK Nagar Construction Zone, Madurai', desc: 'Dust from ongoing construction with visible particulate matter.' },
+  { file: 'Factory smoke.jpg', category: 'Industrial Emissions', coords: { lat: 9.9123, lng: 78.1145 }, loc: 'SIDCO Industrial Estate, Madurai', desc: 'Thick smoke排放 from factory chimneys.' },
+  { file: 'Traffic pollution.jpg', category: 'Exhaust & Traffic Smog', coords: { lat: 13.0418, lng: 80.2341 }, loc: 'T Nagar, Chennai — Heavy traffic junction', desc: 'Dense vehicle congestion with visible smog layer.' },
+  { file: 'Traffic pollution1.jpg', category: 'Exhaust & Traffic Smog', coords: { lat: 13.0500, lng: 80.2824 }, loc: 'Marina Beach Road, Chennai', desc: 'Traffic jam along the beach corridor.' },
+  { file: 'Clean environment (no pollution).jpg', category: 'Clean Environment', coords: { lat: 18.9217, lng: 72.8256 }, loc: 'Marine Drive, Mumbai', desc: 'Clean coastal area with no visible pollution.' },
+  { file: 'QQFF-K79S8.jpg', category: 'Industrial Emissions', coords: { lat: 19.0585, lng: 72.9011 }, loc: 'Chembur Industrial Zone, Mumbai', desc: 'Industrial emissions from refinery area.' },
+];
+
 export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -74,6 +83,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
         'Exhaust & Traffic Smog': { lat: 9.9198, lng: 78.1195, loc: 'Mattuthavani Bus Stand, Madurai' },
         'Construction Dust': { lat: 9.9345, lng: 78.1056, loc: 'KK Nagar Construction Zone, Madurai' },
         'Water Contamination': { lat: 9.9412, lng: 78.1312, loc: 'Vandiyur Lake, Madurai' },
+        'Clean Environment': { lat: 18.9217, lng: 72.8256, loc: 'Marine Drive, Mumbai' },
       };
       const match = presetCoords[options.category];
       if (match) { setCoords({ lat: match.lat, lng: match.lng }); setLocation(match.loc); }
@@ -182,6 +192,40 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
         {/* LEFT COLUMN (60%): Upload + Form */}
         <div className="lg:col-span-3 grid grid-rows-[auto_1fr] gap-6">
           <UploadCard onImageSelected={handleImageSelected} selectedImage={selectedImage} onClear={handleClear} />
+
+          {/* Sample Images Quick-Select */}
+          {!selectedImage && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+              className="glass-panel rounded-2xl p-4 border border-white/5"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[9px] font-bold text-muted-text uppercase tracking-wider">Load Sample</span>
+                <span className="text-[8px] text-muted-text/50">Pre-set locations across India</span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {SAMPLE_IMAGES.map((s) => (
+                  <motion.button key={s.file} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="button"
+                    onClick={async () => {
+                      const img = await fetch(`/samples/${encodeURIComponent(s.file)}`);
+                      const blob = await img.blob();
+                      const file = new File([blob], s.file, { type: 'image/jpeg' });
+                      const url = URL.createObjectURL(blob);
+                      handleImageSelected(url, { file, category: s.category, description: s.desc });
+                      setCoords(s.coords);
+                      setLocation(s.loc);
+                    }}
+                    className="p-2 rounded-xl bg-slate-900/60 border border-white/5 hover:border-secondary/30 hover:bg-slate-800/80 transition-all text-center group"
+                  >
+                    <div className="text-lg mb-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                      {s.category === 'Construction Dust' ? '🏗️' : s.category === 'Industrial Emissions' ? '🏭' : s.category === 'Exhaust & Traffic Smog' ? '🚗' : '🌿'}
+                    </div>
+                    <span className="text-[8px] font-bold text-white block leading-tight truncate">{s.loc.split(',')[0]}</span>
+                    <span className="text-[7px] text-muted-text truncate block">{s.loc.split(',')[1]?.trim() || ''}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           <motion.form initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
             onSubmit={handleSubmitReport} className="glass-panel rounded-2xl p-5 flex flex-col h-full">
