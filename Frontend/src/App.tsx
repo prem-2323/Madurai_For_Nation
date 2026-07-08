@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Navbar } from './components/Navbar';
@@ -41,6 +41,11 @@ export default function App() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+
+  const handleTokenUpdate = useCallback((newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem('token', newToken);
+  }, []);
   const glowRef = useRef<HTMLDivElement>(null);
 
   // Mouse glow tracker
@@ -161,7 +166,7 @@ export default function App() {
           <Route path="/officer/dashboard" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><OfficerDashboard user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
           <Route path="/officer/reports" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><OfficerReports reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
           <Route path="/officer/hotspots" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><HotspotsPage token={token} user={user} /></PageTransition></RoleProtectedRoute>} />
-          <Route path="/officer/profile" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/officer/profile" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Profile token={token} onLogout={handleLogout} onTokenUpdate={handleTokenUpdate} /></PageTransition></RoleProtectedRoute>} />
           <Route path="/officer/analytics" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><AdminAnalytics token={token} /></PageTransition></RoleProtectedRoute>} />
 
           <Route path="/report" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Report onAddReport={handleAddReport} token={token} /></PageTransition>; })()}</ProtectedRoute>} />
@@ -171,7 +176,7 @@ export default function App() {
           <Route path="/alerts" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Alerts token={token} user={user} /></PageTransition>; })()}</ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/analytics" replace /> : <PageTransition><AdminAnalytics token={token} /></PageTransition>; })()}</ProtectedRoute>} />
           <Route path="/about" element={<PageTransition><About /></PageTransition>} />
-          <Route path="/profile" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/profile" replace /> : <PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/profile" replace /> : <PageTransition><Profile token={token} onLogout={handleLogout} onTokenUpdate={handleTokenUpdate} /></PageTransition>; })()}</ProtectedRoute>} />
           <Route path="*" element={
             (() => {
               const role = getUserRole(user);

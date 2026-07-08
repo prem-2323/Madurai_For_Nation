@@ -113,14 +113,61 @@ router.get('/hotspots', protect, officerOnly, async (req, res) => {
 router.get('/profile', protect, officerOnly, async (req, res) => {
   try {
     const reportsReviewed = await Report.countDocuments({ 'reviewHistory.officer': req.user._id });
+    const reportsResolved = await Report.countDocuments({ status: 'resolved', 'reviewHistory.officer': req.user._id });
+    const reportsInProgress = await Report.countDocuments({ status: 'in_progress', 'reviewHistory.officer': req.user._id });
+    const totalReportCount = await Report.countDocuments();
     successResponse(res, {
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
       department: req.user.department || 'Environmental Monitoring',
+      status: req.user.status,
       createdAt: req.user.createdAt,
-      reportsReviewed
+      reportsReviewed,
+      reportsResolved,
+      reportsInProgress,
+      totalReportCount
     });
+  } catch (error) {
+    errorResponse(res, error.message, 500);
+  }
+});
+
+router.put('/profile', protect, officerOnly, async (req, res) => {
+  try {
+    const { name, email, department } = req.body;
+    const updates = {};
+    if (name !== undefined) {
+      if (name.trim().length < 2) return errorResponse(res, 'Name must be at least 2 characters', 400);
+      updates.name = name.trim();
+    }
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) return errorResponse(res, 'Invalid email format', 400);
+      const existingUser = await require('../models/User').findOne({ email: email.toLowerCase(), _id: { $ne: req.user._id } });
+      if (existingUser) return errorResponse(res, 'Email already in use', 400);
+      updates.email = email.toLowerCase().trim();
+    }
+    if (department !== undefined) {
+      updates.department = department.trim();
+    }
+
+    if (Object.keys(updates).length === 0) return errorResponse(res, 'No fields to update', 400);
+
+    const updatedUser = await require('../models/User').findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true });
+    if (!updatedUser) return errorResponse(res, 'User not found', 404);
+
+    const token = updatedUser.generateAuthToken();
+
+    successResponse(res, {
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      department: updatedUser.department || 'Environmental Monitoring',
+      status: updatedUser.status,
+      createdAt: updatedUser.createdAt,
+      token
+    }, 'Profile updated successfully');
   } catch (error) {
     errorResponse(res, error.message, 500);
   }
