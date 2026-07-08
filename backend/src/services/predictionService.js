@@ -128,6 +128,11 @@ async function build24HourPrediction({ latitude, longitude }) {
   const temperature = airQuality.temperature ?? 0;
   const currentAQI = airQuality.aqi ?? 0;
   const currentPM25 = airQuality.pm25 ?? 0;
+  const pm10 = airQuality.pm10 ?? 0;
+  const no2 = airQuality.no2 ?? 0;
+  const so2 = airQuality.so2 ?? 0;
+  const co = airQuality.co ?? 0;
+  const o3 = airQuality.o3 ?? 0;
 
   const currentPressure = currentAQI * 0.65;
   const reportPressure = nearbyCount * 5 + criticalCount * 12 + highCount * 7 + mediumCount * 3;
@@ -173,6 +178,11 @@ async function build24HourPrediction({ latitude, longitude }) {
       windSpeed,
       windDirection: airQuality.windDirection ?? 0,
       currentPM25,
+      pm10,
+      no2,
+      so2,
+      co,
+      o3,
       nearbyCount,
       criticalCount,
       hotspotScore,

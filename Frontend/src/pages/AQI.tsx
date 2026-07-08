@@ -15,7 +15,7 @@ const AQI_COLORS: Record<string, { bg: string; border: string; text: string; gra
 };
 
 const POLLUTANT_CONFIG = [
-  { key: 'pm25', label: 'PM2.5', unit: 'μg/m³', color: 'bg-red-500', max: 200 },
+  { key: 'currentPM25', label: 'PM2.5', unit: 'μg/m³', color: 'bg-red-500', max: 200 },
   { key: 'pm10', label: 'PM10', unit: 'μg/m³', color: 'bg-orange-500', max: 300 },
   { key: 'no2', label: 'NO₂', unit: 'ppb', color: 'bg-yellow-500', max: 100 },
   { key: 'so2', label: 'SO₂', unit: 'ppb', color: 'bg-purple-500', max: 100 },

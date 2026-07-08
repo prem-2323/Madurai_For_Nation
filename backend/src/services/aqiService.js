@@ -47,6 +47,7 @@ async function fetchAirPollution(lat, lon, apiKey) {
     pm10: components.pm10 ?? 0,
     co: components.co ?? 0,
     no2: components.no2 ?? 0,
+    so2: components.so2 ?? 0,
     o3: components.o3 ?? 0,
   };
 }

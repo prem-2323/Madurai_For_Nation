@@ -5,20 +5,14 @@ import {
   User, Mail, Shield, Calendar, LogOut, CheckCircle2, UserCheck,
   Building2, ClipboardList, Trophy, Flame, Leaf, TrendingUp, Medal,
   Star, Award, Loader2, Save, X, Edit3, AlertTriangle, RefreshCw,
-  Eye, EyeOff, KeyRound, BadgeCheck, Clock, Target, Activity
+  BadgeCheck, Clock, Target, Activity, BarChart3
 } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/analyze';
+import { fetchMyReports } from '../api/reports';
+import type { CitizenReport } from '../types';
 import { Skeleton, SkeletonCard } from '../components/Skeleton';
 import toast from 'react-hot-toast';
-
-const ACHIEVEMENTS = [
-  { id: 1, name: 'Pollution Hero', icon: <Trophy className="w-5 h-5" />, desc: 'Submitted 10+ pollution reports', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', earned: true },
-  { id: 2, name: 'Active Reporter', icon: <Flame className="w-5 h-5" />, desc: 'Reported in last 7 days', color: 'text-orange-400', bg: 'bg-orange-400/10', border: 'border-orange-400/20', earned: true },
-  { id: 3, name: 'Green Citizen', icon: <Leaf className="w-5 h-5" />, desc: '5 resolved cleanups', color: 'text-success', bg: 'bg-success/10', border: 'border-success/20', earned: false },
-  { id: 4, name: 'Environmental Guardian', icon: <Award className="w-5 h-5" />, desc: 'Contributed to 25 reports', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20', earned: true },
-  { id: 5, name: 'Impact Maker', icon: <Star className="w-5 h-5" />, desc: '500+ people benefited', color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20', earned: false },
-];
 
 const LEVELS = [
   { level: 1, name: 'Cleaner', icon: <Leaf className="w-4 h-4" />, min: 0, color: 'text-success' },
@@ -81,6 +75,7 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout, onTokenUpdate
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [officerProfile, setOfficerProfile] = useState<any>(null);
+  const [myReports, setMyReports] = useState<CitizenReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -103,12 +98,17 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout, onTokenUpdate
 
       if (fetchedProfile?.role === 'officer') {
         try {
-          const officerRes = await axios.get(`${API_BASE_URL}/api/officer/profile`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const [officerRes, reportsRes] = await Promise.all([
+            axios.get(`${API_BASE_URL}/api/officer/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetchMyReports(token).catch(() => []),
+          ]);
           setOfficerProfile(officerRes.data.data);
+          setMyReports(reportsRes);
           setForm(prev => ({ ...prev, department: officerRes.data.data.department || '' }));
         } catch { /* officer endpoint may not exist for citizens */ }
+      } else {
+        const reports = await fetchMyReports(token).catch(() => []);
+        setMyReports(reports);
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Failed to retrieve profile.';
@@ -170,7 +170,13 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout, onTokenUpdate
     setIsEditing(false);
   };
 
-  const xp = officerProfile?.reportsReviewed ? officerProfile.reportsReviewed * 10 + 50 : 320;
+  const totalReports = myReports.length;
+  const resolvedReports = myReports.filter(r => r.municipalStatus === 'resolved').length;
+  const recentReports = myReports.filter(r => {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return new Date(r.createdAt) > weekAgo;
+  }).length;
+  const xp = totalReports * 25 + resolvedReports * 50;
   const currentLevel = LEVELS.filter(l => xp >= l.min).pop() || LEVELS[0];
   const nextLevel = LEVELS[LEVELS.indexOf(currentLevel) + 1];
   const progress = nextLevel ? ((xp - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100 : 100;
@@ -178,6 +184,14 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout, onTokenUpdate
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchProfile} />;
   if (!profile) return null;
+
+  const ACHIEVEMENTS = [
+    { id: 1, name: 'Pollution Hero', icon: <Trophy className="w-5 h-5" />, desc: 'Submitted 10+ pollution reports', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', earned: totalReports >= 10 },
+    { id: 2, name: 'Active Reporter', icon: <Flame className="w-5 h-5" />, desc: 'Reported in last 7 days', color: 'text-orange-400', bg: 'bg-orange-400/10', border: 'border-orange-400/20', earned: recentReports > 0 },
+    { id: 3, name: 'Green Citizen', icon: <Leaf className="w-5 h-5" />, desc: '5 resolved cleanups', color: 'text-success', bg: 'bg-success/10', border: 'border-success/20', earned: resolvedReports >= 5 },
+    { id: 4, name: 'Environmental Guardian', icon: <Award className="w-5 h-5" />, desc: 'Contributed to 25 reports', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20', earned: totalReports >= 25 },
+    { id: 5, name: 'Impact Maker', icon: <Star className="w-5 h-5" />, desc: '500+ people benefited', color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20', earned: resolvedReports >= 10 },
+  ];
 
   const initials = profile?.name
     ? profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -469,73 +483,77 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout, onTokenUpdate
         </div>
       </motion.div>
 
-      {/* Contribution Graph */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="glass-panel p-6 rounded-2xl"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Medal className="w-4 h-4 text-secondary" /> Contribution Activity
-          </h3>
-          <span className="text-[10px] text-muted-text">Last 30 days</span>
-        </div>
-        <div className="flex gap-1">
-          {Array.from({ length: 30 }, (_, i) => {
-            const level = Math.random();
-            let bg = 'bg-white/5';
-            if (level > 0.7) bg = 'bg-success/40';
-            else if (level > 0.4) bg = 'bg-success/25';
-            else if (level > 0.15) bg = 'bg-success/10';
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.02 }}
-                className="flex-1 h-10 rounded-sm cursor-default relative group/bar"
-                title={`Day ${i + 1}`}
-              >
-                <div className={`w-full h-full rounded-sm ${bg}`} />
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-[9px] text-white px-2 py-1 rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  Day {i + 1}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-        <div className="flex items-center justify-end gap-1 mt-2">
-          <span className="text-[9px] text-muted-text">Less</span>
-          <div className="w-3 h-3 rounded-sm bg-white/5" />
-          <div className="w-3 h-3 rounded-sm bg-success/10" />
-          <div className="w-3 h-3 rounded-sm bg-success/25" />
-          <div className="w-3 h-3 rounded-sm bg-success/40" />
-          <span className="text-[9px] text-muted-text">More</span>
-        </div>
-      </motion.div>
+        {/* Contribution Graph */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="glass-panel p-6 rounded-2xl"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Medal className="w-4 h-4 text-secondary" /> Contribution Activity
+            </h3>
+            <span className="text-[10px] text-muted-text">Last 30 days</span>
+          </div>
+          <div className="flex gap-1">
+            {Array.from({ length: 30 }, (_, i) => {
+              const day = new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000);
+              const dayStr = day.toISOString().slice(0, 10);
+              const count = myReports.filter(r => r.createdAt?.slice(0, 10) === dayStr).length;
+              let bg = 'bg-white/5';
+              if (count >= 3) bg = 'bg-success/40';
+              else if (count >= 2) bg = 'bg-success/25';
+              else if (count >= 1) bg = 'bg-success/10';
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.02 }}
+                  className="flex-1 h-10 rounded-sm cursor-default relative group/bar"
+                >
+                  <div className={`w-full h-full rounded-sm ${bg}`} />
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-[9px] text-white px-2 py-1 rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                    {count > 0 ? `${count} report${count > 1 ? 's' : ''}` : 'No reports'}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-end gap-1 mt-2">
+            <span className="text-[9px] text-muted-text">Less</span>
+            <div className="w-3 h-3 rounded-sm bg-white/5" />
+            <div className="w-3 h-3 rounded-sm bg-success/10" />
+            <div className="w-3 h-3 rounded-sm bg-success/25" />
+            <div className="w-3 h-3 rounded-sm bg-success/40" />
+            <span className="text-[9px] text-muted-text">More</span>
+          </div>
+        </motion.div>
 
-      {/* Impact */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="glass-panel p-6 rounded-2xl bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/10"
-      >
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="p-3 rounded-xl bg-success/15 text-success">
-            <Leaf className="w-6 h-6" />
+        {/* Impact */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="glass-panel p-6 rounded-2xl bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/10"
+        >
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="p-3 rounded-xl bg-success/15 text-success">
+              <BarChart3 className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-sm font-bold text-white">Your Impact</span>
+              <p className="text-xs text-muted-text mt-0.5">
+                You submitted <strong className="text-white">{totalReports} report{totalReports !== 1 ? 's' : ''}</strong>
+                {resolvedReports > 0 && (
+                  <>, <strong className="text-white">{resolvedReports} resolved</strong>,
+                  benefiting an estimated <strong className="text-white">{resolvedReports * 350}+ residents</strong></>
+                )}.
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="text-sm font-bold text-white">Your Impact</span>
-            <p className="text-xs text-muted-text mt-0.5">
-              Your reports helped coordinate <strong className="text-white">8 cleanup operations</strong>,
-              benefiting an estimated <strong className="text-white">3,000+ residents</strong> in Madurai.
-            </p>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
     </div>
   );
 };
