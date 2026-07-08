@@ -22,6 +22,7 @@ import { AccessDenied } from './pages/AccessDenied';
 import { CitizenDashboard } from './pages/CitizenDashboard';
 import { CitizenReports } from './pages/CitizenReports';
 import { OfficerDashboard } from './pages/OfficerDashboard';
+import { OfficerReports } from './pages/OfficerReports';
 import { AQI } from './pages/AQI';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RoleProtectedRoute } from './components/RoleProtectedRoute';
@@ -158,7 +159,7 @@ export default function App() {
           <Route path="/citizen/aqi" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><AQI /></PageTransition></RoleProtectedRoute>} />
 
           <Route path="/officer/dashboard" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><OfficerDashboard user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
-          <Route path="/officer/reports" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Dashboard reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/officer/reports" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><OfficerReports reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
           <Route path="/officer/hotspots" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><HotspotsPage token={token} user={user} /></PageTransition></RoleProtectedRoute>} />
           <Route path="/officer/profile" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></RoleProtectedRoute>} />
           <Route path="/officer/analytics" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><AdminAnalytics token={token} /></PageTransition></RoleProtectedRoute>} />

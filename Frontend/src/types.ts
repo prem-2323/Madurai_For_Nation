@@ -106,6 +106,9 @@ export interface PollutionReport {
   airQuality?: AirQualityData;
   reporter?: string;
   backendStatus?: string;
+  municipalStatus?: string;
+  assignedOfficerName?: string;
+  assignedTeam?: string;
 }
 
 export interface SourceReportData {

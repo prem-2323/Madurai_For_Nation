@@ -38,12 +38,10 @@ exports.getReports = async (req, res) => {
         .populate('reportedBy', 'name email')
         .sort({ createdAt: -1 })
         .select(
-          '_id latitude longitude category severity AQI aqiLevel image createdAt status recommendation location description confidence healthRisk reportedBy'
+          '_id latitude longitude category severity AQI aqiLevel image createdAt status recommendation location description confidence healthRisk reportedBy municipalStatus assignedOfficerName assignedTeam'
         );
 
-      const mapReports = reports
-        .filter((r) => r.latitude && r.longitude)
-        .map((r) => ({
+      const mapReports = reports.map((r) => ({
           _id: r._id,
           latitude: r.latitude,
           longitude: r.longitude,
@@ -60,7 +58,10 @@ exports.getReports = async (req, res) => {
           confidence: r.confidence,
           healthRisk: r.healthRisk,
           reporter: r.reportedBy?.name || 'Anonymous',
-        }));
+          municipalStatus: r.municipalStatus,
+          assignedOfficerName: r.assignedOfficerName,
+          assignedTeam: r.assignedTeam,
+      }));
 
       return successResponse(res, mapReports);
     }

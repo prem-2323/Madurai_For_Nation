@@ -21,7 +21,11 @@ export async function fetchHotspots(token?: string | null, officer?: boolean): P
 
 export async function updateHotspotStatus(
   id: string,
-  municipalStatus: string,
+  data: {
+    municipalStatus?: string;
+    assignedOfficerName?: string;
+    assignedTeam?: string;
+  },
   token?: string | null
 ): Promise<PollutionHotspot> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -30,11 +34,11 @@ export async function updateHotspotStatus(
   const response = await fetch(`${API_BASE_URL}/api/hotspots/${id}/status`, {
     method: 'PATCH',
     headers,
-    body: JSON.stringify({ municipalStatus }),
+    body: JSON.stringify(data),
   });
   const payload = await response.json();
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || 'Failed to update hotspot status');
+    throw new Error(payload.message || 'Failed to update hotspot');
   }
   return mongoHotspotToPollutionHotspot(payload.data as MongoHotspot);
 }

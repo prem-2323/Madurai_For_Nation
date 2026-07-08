@@ -71,39 +71,52 @@ exports.assignTeam = async (req, res) => {
 
 exports.updateHotspotStatus = async (req, res) => {
   try {
-    const { municipalStatus } = req.body;
-    if (!MUNICIPAL_STATUSES.includes(municipalStatus)) {
-      return errorResponse(res, `Invalid status. Must be one of: ${MUNICIPAL_STATUSES.join(', ')}`, 400);
-    }
+    const { municipalStatus, assignedOfficerName, assignedTeam } = req.body;
 
     const now = new Date();
     const updateFields = {
-      municipalStatus,
       assignedOfficer: req.user._id,
-      assignedOfficerName: req.user.name || 'Officer',
       statusUpdatedAt: now,
-      status: municipalStatus === 'resolved' ? 'Resolved' : municipalStatus === 'in_progress' ? 'In Progress' : 'Active',
     };
 
-    if (municipalStatus === 'resolved') {
-      updateFields.resolvedAt = now;
+    if (municipalStatus) {
+      if (!MUNICIPAL_STATUSES.includes(municipalStatus)) {
+        return errorResponse(res, `Invalid status. Must be one of: ${MUNICIPAL_STATUSES.join(', ')}`, 400);
+      }
+      updateFields.municipalStatus = municipalStatus;
+      updateFields.status =
+        municipalStatus === 'resolved' ? 'Resolved' : municipalStatus === 'in_progress' ? 'In Progress' : 'Active';
+      if (municipalStatus === 'resolved') {
+        updateFields.resolvedAt = now;
+      }
     }
 
-    const hotspot = await Hotspot.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateFields },
-      { new: true }
-    );
+    if (assignedOfficerName !== undefined) {
+      updateFields.assignedOfficerName = assignedOfficerName;
+    }
+
+    if (assignedTeam !== undefined) {
+      updateFields.assignedTeam = assignedTeam;
+    }
+
+    if (!updateFields.municipalStatus && assignedOfficerName === undefined && assignedTeam === undefined) {
+      return errorResponse(res, 'At least one field (municipalStatus, assignedOfficerName, assignedTeam) is required', 400);
+    }
+
+    const hotspot = await Hotspot.findByIdAndUpdate(req.params.id, { $set: updateFields }, { new: true });
 
     if (!hotspot) return errorResponse(res, 'Hotspot not found', 404);
 
-    if (hotspot.sourceReportIds && hotspot.sourceReportIds.length > 0) {
+    if (hotspot.sourceReportIds && hotspot.sourceReportIds.length > 0 && updateFields.municipalStatus) {
       const reportUpdateFields = {
-        municipalStatus,
+        municipalStatus: updateFields.municipalStatus,
         assignedOfficer: req.user._id,
-        assignedOfficerName: req.user.name || 'Officer',
+        assignedOfficerName: updateFields.assignedOfficerName || req.user.name || 'Officer',
         statusUpdatedAt: now,
       };
+      if (assignedTeam !== undefined) {
+        reportUpdateFields.assignedTeam = assignedTeam;
+      }
       if (municipalStatus === 'resolved') {
         reportUpdateFields.resolvedAt = now;
       }
@@ -115,7 +128,7 @@ exports.updateHotspotStatus = async (req, res) => {
             reviewHistory: {
               officer: req.user._id,
               action: 'municipalStatus',
-              value: municipalStatus,
+              value: updateFields.municipalStatus,
               reviewedAt: now,
             },
           },
@@ -123,7 +136,7 @@ exports.updateHotspotStatus = async (req, res) => {
       );
     }
 
-    successResponse(res, hotspot, 'Hotspot status updated successfully');
+    successResponse(res, hotspot, 'Hotspot updated successfully');
   } catch (error) {
     errorResponse(res, error.message, 500);
   }

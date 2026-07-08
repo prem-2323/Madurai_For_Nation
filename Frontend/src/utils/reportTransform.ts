@@ -18,6 +18,9 @@ export interface MongoMapReport {
   confidence?: number;
   healthRisk?: string;
   reporter?: string;
+  municipalStatus?: string;
+  assignedOfficerName?: string;
+  assignedTeam?: string;
 }
 
 function mapSeverity(severity: string): SeverityLevel {
@@ -74,6 +77,9 @@ export function mongoReportToPollutionReport(report: MongoMapReport): PollutionR
     recommendation: report.recommendation || '',
     reporter: report.reporter || 'Anonymous',
     backendStatus: report.status,
+    municipalStatus: report.municipalStatus,
+    assignedOfficerName: report.assignedOfficerName,
+    assignedTeam: report.assignedTeam,
     airQuality: report.aqi
       ? {
           aqi: report.aqi,
