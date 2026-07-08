@@ -1,21 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircle, faMagnifyingGlass, faFileLines, faUsers, faScrewdriverWrench, faCheck, faCamera } from '@fortawesome/free-solid-svg-icons';
+import { faCircle, faMagnifyingGlass, faCamera } from '@fortawesome/free-solid-svg-icons';
 import {
-  ClipboardList,
-  Calendar,
-  UserCheck,
-  MapPin,
-  AlertCircle,
-  RefreshCw,
-  ShieldAlert,
-  Wind,
-  BarChart3,
-  HeartPulse,
-  Building2,
-  Clock,
-  CheckCircle2,
+  ClipboardList, Calendar, MapPin, AlertCircle, RefreshCw,
 } from 'lucide-react';
 import type { CitizenReport } from '../types';
 import { fetchMyReports } from '../api/reports';
@@ -23,10 +11,6 @@ import { API_BASE_URL } from '../api/analyze';
 import {
   getPublicStatusInfo,
   formatTimestamp,
-  formatTimeAgo,
-  STATUS_STAGES,
-  getStageIndex,
-  stageOrder,
 } from '../utils/municipalStatus';
 import { EmptyState } from '../components/Common';
 import { SkeletonCard } from '../components/Skeleton';
@@ -55,6 +39,14 @@ function getAQIColor(aqi: number): string {
   if (aqi >= 51) return 'text-yellow-300 bg-yellow-400/10 border-yellow-300/30';
   return 'text-green-400 bg-green-500/10 border-green-400/30';
 }
+
+const STAGE_DOT_COLORS: Record<string, string> = {
+  reported: 'bg-blue-500',
+  under_review: 'bg-yellow-500',
+  team_assigned: 'bg-orange-500',
+  in_progress: 'bg-orange-500',
+  resolved: 'bg-green-500',
+};
 
 const FALLBACK_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect fill="#1e293b" width="80" height="80"/><g fill="none" stroke="#64748b" stroke-width="2" transform="translate(24,20)"><rect x="2" y="8" width="32" height="24" rx="4"/><circle cx="18" cy="20" r="6"/><path d="M12 8 L14 4 L22 4 L24 8"/></g></svg>');
 
@@ -92,7 +84,11 @@ export const CitizenReports: React.FC<CitizenReportsProps> = ({ token }) => {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-16 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="space-y-2 mb-8">
+          <div className="h-3 w-20 bg-slate-800 rounded skeleton" />
+          <div className="h-10 w-48 bg-slate-800 rounded skeleton" />
+        </div>
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
@@ -102,272 +98,158 @@ export const CitizenReports: React.FC<CitizenReportsProps> = ({ token }) => {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-16">
-        <div className="p-6 rounded-2xl bg-danger/10 border border-danger/30 text-center space-y-3">
-          <AlertCircle className="w-8 h-8 text-danger mx-auto" />
-          <p className="text-sm text-danger font-semibold">{error}</p>
-          <button
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="glass-panel rounded-2xl p-10 border border-red-500/20 text-center max-w-lg mx-auto space-y-5"
+        >
+          <div className="w-14 h-14 mx-auto rounded-full bg-danger/10 flex items-center justify-center">
+            <AlertCircle className="w-7 h-7 text-danger" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-white">Failed to Load Reports</h2>
+            <p className="text-sm text-muted-text">{error}</p>
+          </div>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={loadReports}
-            className="px-4 py-2 rounded-xl bg-slate-800 text-white border border-white/5 text-xs font-semibold hover:bg-slate-700 transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white text-xs font-bold hover:shadow-lg hover:shadow-primary/20 transition-all"
           >
-            Retry
-          </button>
-        </div>
+            <RefreshCw className="w-4 h-4" /> Retry
+          </motion.button>
+        </motion.div>
       </div>
     );
   }
 
   const sorted = [...reports].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-left">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <span className="text-xs font-bold text-primary uppercase tracking-widest block">
-            Citizen Portal
-          </span>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <ClipboardList className="w-8 h-8 text-primary" /> My Reports
-          </h1>
-          <p className="text-sm text-muted-text">
-            Track the municipal response progress for your submitted pollution reports.
-          </p>
-        </div>
-        <button
-          onClick={loadReports}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/5 text-xs font-semibold text-white transition-all disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </button>
-      </div>
+  const resolvedCount = sorted.filter(r => r.municipalStatus === 'resolved').length;
+  const inProgressCount = sorted.filter(r => r.municipalStatus === 'in_progress' || r.municipalStatus === 'team_assigned').length;
 
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-left">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
+      >
+        <div className="space-y-1">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] block">Citizen Portal</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3">
+            <span className="text-gradient">My Reports</span>
+          </h1>
+          <p className="text-xs text-muted-text">Track the municipal response progress for your submitted pollution reports.</p>
+        </div>
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={loadReports} disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/5 text-xs font-semibold text-white transition-all disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </motion.button>
+      </motion.div>
+
+      {/* Summary bar */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+        className="grid grid-cols-3 gap-3"
+      >
+        {[
+          { label: 'Total Reports', value: sorted.length, color: 'text-white', bg: 'bg-slate-800/60', border: 'border-white/5' },
+          { label: 'Resolved', value: resolvedCount, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
+          { label: 'In Progress', value: inProgressCount, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
+        ].map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + i * 0.04 }}
+            className={`glass-panel rounded-xl p-3 text-center border ${s.border}`}
+          >
+            <span className="text-lg font-extrabold text-white">{s.value}</span>
+            <span className="text-[9px] text-muted-text block mt-0.5 uppercase tracking-wider font-semibold">{s.label}</span>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* Reports list */}
       {sorted.length === 0 ? (
-        <EmptyState
-          title="No Reports Yet"
-          description="You haven't submitted any pollution reports yet. Go to the Report page to submit one."
-          icon={<ClipboardList className="w-8 h-8" />}
-        />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <EmptyState
+            title="No Reports Yet"
+            description="You haven't submitted any pollution reports yet. Go to the Report page to submit one."
+            icon={<ClipboardList className="w-8 h-8" />}
+          />
+        </motion.div>
       ) : (
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {sorted.map((report, index) => {
             const statusInfo = getPublicStatusInfo(report.municipalStatus);
             const severityBadge = getSeverityBadge(report.severity);
-            const currentStageIdx = getStageIndex(report.municipalStatus);
-
-            const historyMap = new Map<string, string>();
-            report.reviewHistory.forEach((entry) => {
-              historyMap.set(entry.value, entry.reviewedAt);
-            });
 
             return (
               <motion.div
                 key={report._id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="rounded-2xl bg-card-dark border border-slate-800 overflow-hidden hover:border-slate-700 transition-all"
+                transition={{ delay: index * 0.04 }}
+                className="glass-panel rounded-2xl border border-white/5 overflow-hidden hover:border-white/10 transition-all group"
               >
-                {/* Header with Image */}
-                <div className="p-5 pb-4 border-b border-slate-800/60">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex gap-4 min-w-0 flex-1">
-                      <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-slate-700 bg-slate-900 flex items-center justify-center text-2xl">
-                        {report.image ? (
-                          <img
-                            src={resolveImageUrl(report.image)}
-                            alt={report.category}
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
-                            }}
-                          />
-                        ) : (
-                          <FontAwesomeIcon icon={faCamera} className="w-8 h-8 text-slate-400" />
-                        )}
-                      </div>
-                      <div className="space-y-2 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base font-bold text-white">{report.category}</h3>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${severityBadge}`}>
-                            {report.severity}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getAQIColor(report.AQI)}`}>
-                            AQI {report.AQI}
-                          </span>
+                <div className="relative">
+                  <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-purple-500" />
+                  <div className="p-4 space-y-3">
+                    {/* Header: thumbnail + badges */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex gap-3 min-w-0 flex-1">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-slate-900 flex items-center justify-center">
+                          {report.image ? (
+                            <img src={resolveImageUrl(report.image)} alt={report.category}
+                              className="w-full h-full object-cover" referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
+                              }}
+                            />
+                          ) : (
+                            <FontAwesomeIcon icon={faCamera} className="w-5 h-5 text-slate-400" />
+                          )}
                         </div>
-                        {report.description && (
-                          <p className="text-sm text-muted-text leading-relaxed">{report.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-xl shrink-0"><FontAwesomeIcon icon={statusInfo.icon === 'circle' ? faCircle : statusInfo.icon === 'magnifying-glass' ? faMagnifyingGlass : faCircle} className={statusInfo.color} /></span>
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-4 border-b border-slate-800/60">
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-text font-bold flex items-center gap-1">
-                      <Wind className="w-3 h-3" /> AQI
-                    </span>
-                    <div>
-                      <span className="text-sm font-bold text-white">{report.AQI || '—'}</span>
-                      {report.aqiLevel && (
-                        <span className="text-[10px] text-muted-text ml-1">({report.aqiLevel})</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-text font-bold flex items-center gap-1">
-                      <ShieldAlert className="w-3 h-3" /> Confidence
-                    </span>
-                    <span className="text-sm font-bold text-white">{report.confidence}%</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-text font-bold flex items-center gap-1">
-                      <BarChart3 className="w-3 h-3" /> Severity
-                    </span>
-                    <span className="text-sm font-bold text-white capitalize">{report.severity}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-text font-bold flex items-center gap-1">
-                      <HeartPulse className="w-3 h-3" /> Health Risk
-                    </span>
-                    <span className="text-sm font-bold text-white leading-tight block">
-                      {report.healthRisk || '—'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Status Timeline */}
-                <div className="p-5 border-b border-slate-800/60">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Clock className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">
-                      Municipal Response Progress
-                    </span>
-                    <span className={`text-xs font-semibold ${statusInfo.color}`}>
-                      — {statusInfo.label}
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-700" />
-
-                    <div className="space-y-0">
-                      {STATUS_STAGES.map((stage, stageIdx) => {
-                        const stageHistoryTime = historyMap.get(stage.key);
-                        const isCompleted = stageIdx <= currentStageIdx;
-                        const isCurrent = stageIdx === currentStageIdx;
-
-                        return (
-                          <div key={stage.key} className="relative flex items-start gap-4 pb-5 last:pb-0">
-                            <div
-                              className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                                isCompleted
-                                  ? stage.key === 'resolved'
-                                    ? 'bg-green-500'
-                                    : stage.key === 'team_assigned' || stage.key === 'in_progress'
-                                    ? 'bg-orange-500'
-                                    : stage.key === 'under_review'
-                                    ? 'bg-yellow-500'
-                                    : 'bg-blue-500'
-                                  : 'bg-slate-700'
-                              }`}
-                            >
-                              {isCompleted ? (
-                                stage.key === 'resolved' ? (
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                                ) : (
-                                  <div className="w-2 h-2 rounded-full bg-white" />
-                                )
-                              ) : (
-                                <div className="w-2 h-2 rounded-full bg-slate-500" />
-                              )}
-                            </div>
-
-                            <div className="flex-1 min-w-0 pt-0.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span
-                                  className={`text-xs font-bold ${
-                                    isCompleted ? 'text-white' : 'text-slate-500'
-                                  }`}
-                                >
-                                  {stage.label}
-                                </span>
-                                {stageHistoryTime && (
-                                  <span className="text-[10px] text-muted-text">
-                                    {formatTimestamp(stageHistoryTime)}
-                                  </span>
-                                )}
-                                {isCurrent && !stageHistoryTime && (
-                                  <span className="text-[10px] text-primary font-semibold animate-pulse">
-                                    Current
-                                  </span>
-                                )}
-                              </div>
-                              {isCurrent && (
-                                <p className="text-[11px] text-muted-text mt-1 leading-relaxed">
-                                  {statusInfo.message}
-                                </p>
-                              )}
-                            </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-white truncate">{report.category}</h3>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${severityBadge}`}>
+                              {report.severity}
+                            </span>
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${getAQIColor(report.AQI)}`}>
+                              AQI {report.AQI}
+                            </span>
                           </div>
-                        );
-                      })}
+                        </div>
+                      </div>
+                      <FontAwesomeIcon icon={statusInfo.icon === 'circle' ? faCircle : faMagnifyingGlass} className={`${statusInfo.color} text-lg shrink-0`} />
                     </div>
-                  </div>
-                </div>
 
-                {/* Footer Info */}
-                <div className="p-5 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-text">
-                      <Calendar className="w-3.5 h-3.5 shrink-0 text-primary" />
-                      <span>Submitted: {formatTimestamp(report.createdAt)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-text">
-                      <UserCheck className="w-3.5 h-3.5 shrink-0 text-primary" />
-                      <span>
-                        Officer: {report.assignedOfficerName || 'Pending review'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-text">
-                      <Building2 className="w-3.5 h-3.5 shrink-0 text-primary" />
-                      <span>
-                        Team: {report.assignedTeam || 'Not assigned'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-text">
-                      <Clock className="w-3.5 h-3.5 shrink-0 text-primary" />
-                      <span>
-                        Updated: {report.statusUpdatedAt ? `${formatTimeAgo(report.statusUpdatedAt)} — ${formatTimestamp(report.statusUpdatedAt)}` : '—'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {report.resolvedAt && (
-                    <div className="flex items-center gap-2 text-[11px] text-green-400">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>Resolved on: {formatTimestamp(report.resolvedAt)}</span>
-                    </div>
-                  )}
-
-                  {report.recommendation && (
-                    <div className="pt-2 border-t border-slate-800/60">
-                      <div className="flex items-start gap-2 text-[11px] text-muted-text">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-primary mt-0.5" />
-                        <span>{report.recommendation}</span>
+                    {/* Metrics row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 bg-slate-900/60 rounded-lg border border-white/5 text-center">
+                        <span className="text-[8px] uppercase font-bold text-muted-text block">Confidence</span>
+                        <span className="text-xs font-bold text-white">{report.confidence}%</span>
+                      </div>
+                      <div className="p-2 bg-slate-900/60 rounded-lg border border-white/5 text-center">
+                        <span className="text-[8px] uppercase font-bold text-muted-text block">Health Risk</span>
+                        <span className="text-xs font-bold text-white truncate block">{report.healthRisk || '—'}</span>
                       </div>
                     </div>
-                  )}
 
-                  <div className="flex items-center gap-2 text-[11px] text-muted-text pt-1">
-                    <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
-                    <span>{report.location}</span>
+                    {/* Status bar */}
+                    <div className="flex items-center gap-2 p-2 bg-slate-900/40 rounded-lg border border-white/5">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${statusInfo.color.replace('text-', 'bg-').replace(/\s+\S+/, '')}`} />
+                      <span className={`text-[9px] font-bold ${statusInfo.color} truncate`}>{statusInfo.label}</span>
+                    </div>
+
+                    {/* Footer: date + location */}
+                    <div className="pt-1 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-[9px] text-muted-text">
+                        <Calendar className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{formatTimestamp(report.createdAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[9px] text-muted-text">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{report.location}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
