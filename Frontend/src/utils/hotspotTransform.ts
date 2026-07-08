@@ -1,6 +1,14 @@
 import { API_BASE_URL } from '../api/analyze';
 import type { PollutionHotspot, SeverityLevel } from '../types';
 
+export interface MongoSourceReportData {
+  _id: string;
+  image: string;
+  category: string;
+  severity: string;
+  description: string;
+}
+
 export interface MongoHotspot {
   _id: string;
   centerLat: number;
@@ -14,10 +22,15 @@ export interface MongoHotspot {
   recommendedAction: string;
   risk: string;
   status: string;
+  municipalStatus?: string;
+  assignedOfficerName?: string;
+  statusUpdatedAt?: string;
+  resolvedAt?: string;
   location: string;
   assignedTeam?: string | null;
   createdAt: string;
   sourceReportIds?: string[];
+  sourceReportData?: MongoSourceReportData[];
 }
 
 function normalizeSeverity(value: string): SeverityLevel {
@@ -54,10 +67,15 @@ export function mongoHotspotToPollutionHotspot(hotspot: MongoHotspot): Pollution
     recommendedAction: hotspot.recommendedAction,
     risk: normalizeRisk(hotspot.risk),
     status: hotspot.status,
+    municipalStatus: hotspot.municipalStatus || 'pending',
+    assignedOfficerName: hotspot.assignedOfficerName || '',
+    statusUpdatedAt: hotspot.statusUpdatedAt || null,
+    resolvedAt: hotspot.resolvedAt || null,
     location: hotspot.location || '',
     assignedTeam: hotspot.assignedTeam || null,
     createdAt: hotspot.createdAt,
     sourceReportIds: hotspot.sourceReportIds || [],
+    sourceReportData: hotspot.sourceReportData || [],
   };
 }
 

@@ -23,10 +23,6 @@ export function isOfficer(user: any): boolean {
   return getUserRole(user) === 'officer';
 }
 
-export function isAdmin(user: any): boolean {
-  return false;
-}
-
 export function isOfficerOrAdmin(user: any): boolean {
   return getUserRole(user) === 'officer';
 }

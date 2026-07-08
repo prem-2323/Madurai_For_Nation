@@ -34,12 +34,4 @@ exports.updateAlertStatus = async (req, res) => {
   }
 };
 
-exports.deleteAlert = async (req, res) => {
-  try {
-    const alert = await Alert.findByIdAndDelete(req.params.id);
-    if (!alert) return errorResponse(res, 'Alert not found', 404);
-    successResponse(res, null, 'Alert deleted successfully');
-  } catch (error) {
-    errorResponse(res, error.message, 500);
-  }
-};
+

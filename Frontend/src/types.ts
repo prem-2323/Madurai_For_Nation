@@ -4,6 +4,31 @@ export type SeverityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 export type HotspotRisk = SeverityLevel;
 export type ReportStatus = 'Reported' | 'AI Analyzed' | 'Action Scheduled' | 'Resolved';
 
+export type MunicipalStatus = 'pending' | 'under_review' | 'team_assigned' | 'in_progress' | 'resolved';
+
+export interface CitizenReport {
+  _id: string;
+  category: string;
+  description: string;
+  severity: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  AQI: number;
+  aqiLevel: string;
+  image: string;
+  confidence: number;
+  healthRisk: string;
+  recommendation: string;
+  createdAt: string;
+  municipalStatus: MunicipalStatus;
+  assignedOfficerName: string;
+  assignedTeam: string;
+  statusUpdatedAt: string | null;
+  resolvedAt: string | null;
+  reviewHistory: { value: string; reviewedAt: string }[];
+}
+
 export interface AirQualityData {
   aqi: number;
   aqiLevel: string;
@@ -83,6 +108,14 @@ export interface PollutionReport {
   backendStatus?: string;
 }
 
+export interface SourceReportData {
+  _id: string;
+  image: string;
+  category: string;
+  severity: string;
+  description: string;
+}
+
 export interface PollutionHotspot {
   id: string;
   center: {
@@ -98,10 +131,15 @@ export interface PollutionHotspot {
   recommendedAction: string;
   risk: HotspotRisk;
   status: string;
+  municipalStatus?: string;
+  assignedOfficerName?: string;
+  statusUpdatedAt?: string | null;
+  resolvedAt?: string | null;
   location: string;
   assignedTeam?: string | null;
   createdAt: string;
   sourceReportIds?: string[];
+  sourceReportData?: SourceReportData[];
 }
 
 export interface StatCardData {

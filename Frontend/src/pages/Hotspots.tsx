@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   Clock,
   UserCheck,
-  Trash2,
   Eye,
   Target,
   AlertTriangle,
@@ -24,9 +23,11 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PollutionHotspot } from '../types';
-import { fetchHotspots, updateHotspotStatus, updateHotspot, deleteHotspot } from '../api/hotspots';
+import { fetchHotspots, updateHotspotStatus, assignTeam as assignTeamToHotspot } from '../api/hotspots';
 import { fetchPrediction } from '../api/prediction';
 import { formatHotspotTimestamp } from '../utils/hotspotTransform';
+import { getPublicStatusInfo } from '../utils/municipalStatus';
+import { API_BASE_URL } from '../api/analyze';
 import { Modal, LoadingSpinner, EmptyState, AlertBanner } from '../components/Common';
 
 const MADURAI_CENTER: [number, number] = [9.9252, 78.1198];
@@ -40,6 +41,11 @@ const SEVERITY_COLORS = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
+  pending: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  under_review: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+  team_assigned: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  in_progress: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  resolved: 'text-green-400 bg-green-500/10 border-green-500/20',
   Active: 'text-green-400 bg-green-500/10 border-green-500/20',
   'In Progress': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   Resolved: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
@@ -62,6 +68,12 @@ const MADURAI_AREAS: Record<string, { lat: number; lng: number }> = {
 interface HotspotsPageProps {
   token?: string | null;
   user?: any;
+}
+
+function resolveImgUrl(image: string): string {
+  if (!image) return '';
+  if (image.startsWith('http')) return image;
+  return `${API_BASE_URL.replace(/\/+$/, '')}/${image.replace(/^\//, '')}`;
 }
 
 function getRiskBadge(risk: string) {
@@ -110,21 +122,20 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
   const [predictionData, setPredictionData] = useState<Record<string, number>>({});
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'danger' | 'info'; text: string } | null>(null);
 
-  const isOfficer = user?.role === 'officer' || user?.role === 'admin';
-  const isAdmin = user?.role === 'admin';
+  const isOfficer = user?.role === 'officer';
 
   const loadHotspots = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchHotspots(token);
+      const data = await fetchHotspots(token, isOfficer);
       setHotspots(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load hotspots');
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, isOfficer]);
 
   useEffect(() => {
     loadHotspots();
@@ -164,11 +175,34 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
     });
   }, [sortedHotspots, sidebarSearch]);
 
-  const handleStatusChange = async (hotspot: PollutionHotspot, status: 'Active' | 'In Progress' | 'Resolved') => {
+  const MUNICIPAL_STATUS_FLOW = ['pending', 'under_review', 'team_assigned', 'in_progress', 'resolved'];
+
+  const getNextMunicipalStatus = (current: string | undefined): string => {
+    const idx = MUNICIPAL_STATUS_FLOW.indexOf(current || 'pending');
+    if (idx === -1 || idx >= MUNICIPAL_STATUS_FLOW.length - 1) return MUNICIPAL_STATUS_FLOW[MUNICIPAL_STATUS_FLOW.length - 1];
+    return MUNICIPAL_STATUS_FLOW[idx + 1];
+  };
+
+  const handleStatusChange = async (hotspot: PollutionHotspot) => {
+    const nextStatus = getNextMunicipalStatus(hotspot.municipalStatus);
     try {
-      const updated = await updateHotspotStatus(hotspot.id, status, token);
-      setHotspots((prev) => prev.map((h) => (h.id === hotspot.id ? { ...h, status: updated.status } : h)));
-      setActionMsg({ type: 'success', text: `Hotspot marked as "${status}"` });
+      const updated = await updateHotspotStatus(hotspot.id, nextStatus, token);
+      setHotspots((prev) =>
+        prev.map((h) =>
+          h.id === hotspot.id
+            ? {
+                ...h,
+                municipalStatus: updated.municipalStatus,
+                status: updated.status,
+                assignedOfficerName: updated.assignedOfficerName || '',
+                statusUpdatedAt: updated.statusUpdatedAt,
+                resolvedAt: updated.resolvedAt,
+              }
+            : h
+        )
+      );
+      const info = getPublicStatusInfo(nextStatus as any);
+      setActionMsg({ type: 'success', text: `Status advanced to "${info.label}"` });
     } catch (err) {
       setActionMsg({ type: 'danger', text: err instanceof Error ? err.message : 'Failed to update status' });
     }
@@ -178,24 +212,13 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
   const handleAssignTeam = async () => {
     if (!assignModal || !assignTeam.trim()) return;
     try {
-      const updated = await updateHotspot(assignModal.id, { assignedTeam: assignTeam.trim() }, token);
+      const updated = await assignTeamToHotspot(assignModal.id, assignTeam.trim(), token);
       setHotspots((prev) => prev.map((h) => (h.id === assignModal.id ? { ...h, assignedTeam: updated.assignedTeam } : h)));
       setAssignModal(null);
       setAssignTeam('');
       setActionMsg({ type: 'success', text: `Team "${updated.assignedTeam}" assigned to hotspot` });
     } catch (err) {
       setActionMsg({ type: 'danger', text: err instanceof Error ? err.message : 'Failed to assign team' });
-    }
-    setTimeout(() => setActionMsg(null), 3000);
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteHotspot(id, token);
-      setHotspots((prev) => prev.filter((h) => h.id !== id));
-      setActionMsg({ type: 'success', text: 'Hotspot deleted successfully' });
-    } catch (err) {
-      setActionMsg({ type: 'danger', text: err instanceof Error ? err.message : 'Failed to delete' });
     }
     setTimeout(() => setActionMsg(null), 3000);
   };
@@ -407,6 +430,32 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
                           <strong className="text-slate-900">{hotspot.status}</strong>
                         </div>
                       </div>
+                      {hotspot.sourceReportData && hotspot.sourceReportData.length > 0 && (
+                        <div className="border-t border-slate-200 pt-3">
+                          <span className="text-[10px] uppercase tracking-wide text-slate-500 block mb-2">Report Images</span>
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {hotspot.sourceReportData.slice(0, 6).map((src) => (
+                              <div key={src._id} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-slate-300 bg-slate-100 flex items-center justify-center text-lg">
+                                {src.image ? (
+                                  <img src={resolveImgUrl(src.image)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).parentElement!.textContent = '📷';
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-slate-400">📷</span>
+                                )}
+                              </div>
+                            ))}
+                            {hotspot.sourceReportData.length > 6 && (
+                              <div className="w-14 h-14 rounded-lg shrink-0 border border-slate-300 bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                +{hotspot.sourceReportData.length - 6}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="space-y-1.5 text-[11px] text-slate-700 border-t border-slate-200 pt-3">
                         {predictionData.default && (
                           <div className="flex items-center gap-2">
@@ -494,8 +543,8 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${colors.bg}`}>
                         {hotspot.risk}
                       </span>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusBadge(hotspot.status)}`}>
-                        {hotspot.status}
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusBadge(hotspot.municipalStatus || hotspot.status)}`}>
+                        {hotspot.municipalStatus ? getPublicStatusInfo(hotspot.municipalStatus as any).label : hotspot.status}
                       </span>
                     </div>
                   </div>
@@ -547,7 +596,7 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
                     >
                       <Info className="w-3.5 h-3.5" /> Details
                     </button>
-                    {isOfficer && hotspot.status !== 'Resolved' && (
+                    {isOfficer && (hotspot.municipalStatus || 'pending') !== 'resolved' && (
                       <>
                         <button
                           onClick={() => setAssignModal(hotspot)}
@@ -556,27 +605,14 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
                           <UserCheck className="w-3.5 h-3.5" /> Assign Team
                         </button>
                         <button
-                          onClick={() => handleStatusChange(hotspot, 'In Progress')}
+                          onClick={() => handleStatusChange(hotspot)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-400/20 text-[10px] font-semibold hover:bg-amber-500/20 transition-all"
                         >
-                          <Clock className="w-3.5 h-3.5" /> In Progress
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange(hotspot, 'Resolved')}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-300 border border-green-400/20 text-[10px] font-semibold hover:bg-green-500/20 transition-all"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
+                          <Clock className="w-3.5 h-3.5" /> Advance Status
                         </button>
                       </>
                     )}
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDelete(hotspot.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-300 border border-red-400/20 text-[10px] font-semibold hover:bg-red-500/20 transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    )}
+
                   </div>
                 </div>
               </motion.div>
@@ -684,6 +720,38 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
               <span className="text-[10px] uppercase tracking-wide text-muted-text block">Dominant Pollution</span>
               <strong className="text-white text-sm">{detailModal.dominantPollution}</strong>
             </div>
+
+            {detailModal.sourceReportData && detailModal.sourceReportData.length > 0 && (
+              <div className="rounded-xl border border-white/5 bg-slate-950/60 p-4 space-y-3">
+                <span className="text-[10px] uppercase tracking-wide text-muted-text block">Source Reports</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {detailModal.sourceReportData.map((src) => (
+                    <div key={src._id} className="rounded-lg border border-white/5 bg-slate-900/80 overflow-hidden">
+                      {src.image ? (
+                        <img
+                          src={resolveImgUrl(src.image)}
+                          alt={src.category}
+                          className="w-full h-20 object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-full h-20 flex items-center justify-center text-2xl">📷</div>';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-20 flex items-center justify-center bg-slate-800 text-muted-text text-[10px]">
+                          No image
+                        </div>
+                      )}
+                      <div className="p-2 space-y-1">
+                        <p className="text-[10px] font-bold text-white truncate">{src.category}</p>
+                        <p className="text-[9px] text-muted-text truncate">{src.severity}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {predictionData.default && (
               <div className="rounded-xl border border-white/5 bg-slate-950/60 p-4">

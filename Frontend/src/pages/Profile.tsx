@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { User, Mail, Shield, Calendar, LogOut, CheckCircle2, UserCheck } from 'lucide-react';
+import { User, Mail, Shield, Calendar, LogOut, CheckCircle2, UserCheck, Building2, ClipboardList } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/analyze';
 
@@ -12,6 +12,7 @@ interface ProfileProps {
 
 export const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
   const [profile, setProfile] = useState<any>(null);
+  const [officerProfile, setOfficerProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -32,12 +33,20 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
         const fetchedProfile = response.data.data;
         console.log('[PROFILE] Fetched profile - user role:', fetchedProfile?.role);
         setProfile(fetchedProfile);
+
+        if (fetchedProfile?.role === 'officer') {
+          try {
+            const officerRes = await axios.get(`${API_BASE_URL}/api/officer/profile`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            setOfficerProfile(officerRes.data.data);
+          } catch { }
+        }
       } catch (err: any) {
         setError(
           err.response?.data?.message || 
           'Failed to retrieve profile metadata from secure node.'
         );
-        // If unauthorized, trigger logout
         if (err.response?.status === 401) {
           onLogout();
           navigate('/auth');
@@ -163,8 +172,28 @@ export const Profile: React.FC<ProfileProps> = ({ token, onLogout }) => {
               </div>
             </div>
 
+            {profile?.role === 'officer' && officerProfile && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-muted-text uppercase tracking-widest block">Department</span>
+                <div className="flex items-center gap-2.5 text-sm text-white">
+                  <Building2 className="w-4 h-4 text-primary shrink-0" />
+                  <span>{officerProfile.department}</span>
+                </div>
+              </div>
+            )}
+
+            {profile?.role === 'officer' && officerProfile && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-muted-text uppercase tracking-widest block">Reports Reviewed</span>
+                <div className="flex items-center gap-2.5 text-sm text-white">
+                  <ClipboardList className="w-4 h-4 text-primary shrink-0" />
+                  <span>{officerProfile.reportsReviewed}</span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-muted-text uppercase tracking-widest block">Created On</span>
+              <span className="text-[10px] font-bold text-muted-text uppercase tracking-widest block">Joined Date</span>
               <div className="flex items-center gap-2.5 text-sm text-white">
                 <Calendar className="w-4 h-4 text-primary shrink-0" />
                 <span>{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'}</span>

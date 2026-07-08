@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Menu, X, Wind, Github, Shield, UserCheck } from 'lucide-react';
+import { Menu, X, Wind, Github, Shield, UserCheck, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getNavItemsForRole, getUserRole } from '../utils/role';
+import { fetchGeminiUsage } from '../api/usage';
 
 interface NavbarProps {
   user: any;
@@ -11,6 +12,25 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [geminiRemaining, setGeminiRemaining] = useState<number | null>(null);
+  const [geminiLimit, setGeminiLimit] = useState<number>(0);
+  const [geminiUsed, setGeminiUsed] = useState<number>(0);
+
+  useEffect(() => {
+    const loadUsage = async () => {
+      try {
+        const data = await fetchGeminiUsage();
+        setGeminiRemaining(data.remaining);
+        setGeminiLimit(data.limit);
+        setGeminiUsed(data.used);
+      } catch {
+        console.warn('[NAVBAR] Could not fetch Gemini usage');
+      }
+    };
+    loadUsage();
+    const interval = setInterval(loadUsage, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const navItems = getNavItemsForRole(user);
   const role = getUserRole(user);
@@ -64,6 +84,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
             {/* Desktop Action */}
             <div className="hidden md:flex items-center gap-4">
+              {geminiRemaining !== null && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-900/30 border border-amber-700/40 text-amber-300 text-[10px] font-semibold whitespace-nowrap" title={`Gemini API: ${geminiUsed} / ${geminiLimit} used today`}>
+                  <Zap className="w-3 h-3" />
+                  <span>{geminiRemaining} / {geminiLimit}</span>
+                </div>
+              )}
+
               <a
                 href="https://github.com/prem-2323/Madurai_For_Nation.git"
                 target="_blank"
@@ -176,6 +203,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               </div>
 
               <div className="space-y-4 pt-6 border-t border-slate-800">
+                {geminiRemaining !== null && (
+                  <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-900/30 border border-amber-700/40 text-amber-300 text-[10px] font-semibold" title={`Gemini API: ${geminiUsed} / ${geminiLimit} used today`}>
+                    <Zap className="w-3 h-3" />
+                    <span>Gemini API: {geminiRemaining} credits left</span>
+                  </div>
+                )}
+
                 {user ? (
                   <div className="flex flex-col gap-2">
                     {role && (

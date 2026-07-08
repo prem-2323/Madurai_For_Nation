@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
 import { UploadCard } from '../components/UploadCard';
 import { AIResultCard } from '../components/AIResultCard';
 import { AirQualityCard } from '../components/AirQualityCard';
+import { AlertBanner } from '../components/Common';
 import { MapPin, Navigation, Sparkles, Send, RefreshCw, AlertCircle } from 'lucide-react';
 import { PollutionReport, AIAnalysisResult, ReportStatus, AirQualityData } from '../types';
 import { CATEGORIES } from '../data';
@@ -12,10 +12,6 @@ import { analyzePollutionImage, API_BASE_URL, imageUrlToFile } from '../api/anal
 interface ReportProps {
   onAddReport: (report: PollutionReport) => void;
   token?: string | null;
-}
-
-interface ExtendedReportProps extends ReportProps {
-  airQuality?: AirQualityData | null;
 }
 
 export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
@@ -37,6 +33,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleImageSelected = (
     imageUrl: string,
@@ -49,6 +46,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
     setAirQuality(null);
     setSavedReportId(null);
     setAnalyzeError(null);
+    setSubmitError(null);
 
     if (options?.category) {
       setCategory(options.category);
@@ -151,10 +149,13 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
     setAirQuality(null);
     setSavedReportId(null);
     setAnalyzeError(null);
+    setSubmitError(null);
   };
 
   const handleSubmitReport = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
+
     if (!selectedImage) {
       alert('Please upload or select an image first.');
       return;
@@ -168,36 +169,41 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
       return;
     }
 
-    const newReport: PollutionReport = {
-      id: savedReportId || `REP-${Date.now()}`,
-      imageUrl: selectedImage,
-      category: aiResult.pollutionType,
-      description: description || aiResult.reason || `Reported ${aiResult.pollutionType.toLowerCase()}.`,
-      severity: aiResult.severity,
-      location,
-      coordinates: coords,
-      time: new Date().toISOString(),
-      status: 'AI Analyzed' as ReportStatus,
-      confidence: aiResult.confidence,
-      healthRisk: aiResult.healthRisk,
-      recommendation: aiResult.recommendation,
-      pollutionDetected: aiResult.pollutionDetected,
-      reason: aiResult.reason,
-      estimatedPM25Impact: aiResult.estimatedPM25Impact,
-      estimatedPM10Impact: aiResult.estimatedPM10Impact,
-      emergencyLevel: aiResult.emergencyLevel,
-      needsMunicipalAction: aiResult.needsMunicipalAction,
-      possibleSource: aiResult.possibleSource,
-      priority: aiResult.priority,
-      airQuality: airQuality ?? undefined,
-    };
+    try {
+      const newReport: PollutionReport = {
+        id: savedReportId || `REP-${Date.now()}`,
+        imageUrl: selectedImage,
+        category: aiResult.pollutionType,
+        description: description || aiResult.reason || `Reported ${aiResult.pollutionType.toLowerCase()}.`,
+        severity: aiResult.severity,
+        location,
+        coordinates: coords,
+        time: new Date().toISOString(),
+        status: 'AI Analyzed' as ReportStatus,
+        confidence: aiResult.confidence,
+        healthRisk: aiResult.healthRisk,
+        recommendation: aiResult.recommendation,
+        pollutionDetected: aiResult.pollutionDetected,
+        reason: aiResult.reason,
+        estimatedPM25Impact: aiResult.estimatedPM25Impact,
+        estimatedPM10Impact: aiResult.estimatedPM10Impact,
+        emergencyLevel: aiResult.emergencyLevel,
+        needsMunicipalAction: aiResult.needsMunicipalAction,
+        possibleSource: aiResult.possibleSource,
+        priority: aiResult.priority,
+        airQuality: airQuality ?? undefined,
+      };
 
-    onAddReport(newReport);
-    setShowSuccessAlert(true);
-    setTimeout(() => {
-      setShowSuccessAlert(false);
-      navigate('/dashboard');
-    }, 1800);
+      onAddReport(newReport);
+      setShowSuccessAlert(true);
+      setTimeout(() => {
+        setShowSuccessAlert(false);
+        navigate('/citizen/reports');
+      }, 1800);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to submit report';
+      setSubmitError(message);
+    }
   };
 
   return (
@@ -212,27 +218,29 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
       </div>
 
       {showSuccessAlert && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="p-4 rounded-xl bg-success/20 text-white border border-success/40 flex items-center gap-3"
-        >
-          <Sparkles className="w-5 h-5 text-success animate-pulse shrink-0" />
-          <div>
-            <span className="font-bold block">Environmental Incident Registered successfully!</span>
-            <span className="text-xs text-muted-text">Saved to MongoDB. Redirecting to dashboard...</span>
-          </div>
-        </motion.div>
+        <AlertBanner
+          type="success"
+          message="Report submitted successfully."
+          description="Status: Report Submitted — awaiting municipal review. Redirecting to My Reports..."
+        />
+      )}
+
+      {submitError && (
+        <AlertBanner
+          type="danger"
+          message="Submission Failed"
+          description={submitError}
+          onClose={() => setSubmitError(null)}
+        />
       )}
 
       {analyzeError && (
-        <div className="p-4 rounded-xl bg-danger/15 text-white border border-danger/30 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-danger shrink-0" />
-          <div>
-            <span className="font-bold block text-sm">AI Analysis Failed</span>
-            <span className="text-xs text-muted-text">{analyzeError}</span>
-          </div>
-        </div>
+        <AlertBanner
+          type="danger"
+          message="AI Analysis Failed"
+          description={analyzeError}
+          onClose={() => setAnalyzeError(null)}
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

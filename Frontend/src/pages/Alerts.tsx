@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { fetchAlerts, updateAlertStatus } from '../api/alerts';
 import type { AlertData } from '../types';
-import { isOfficerOrAdmin, isAdmin } from '../utils/role';
+import { isOfficerOrAdmin } from '../utils/role';
 
 interface AlertsProps {
   token?: string | null;
@@ -170,22 +170,7 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
                       [Mark Resolved]
                     </button>
                   )}
-                  {isAdmin(user) && (
-                    <button
-                      onClick={() => {
-                        if (confirm('Delete this alert?')) {
-                          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/alerts/${alert._id}`, {
-                            method: 'DELETE',
-                            headers: { Authorization: `Bearer ${token}` }
-                          }).then(() => setAlerts(prev => prev.filter(a => a._id !== alert._id)))
-                            .catch(() => alert('Failed to delete alert'));
-                        }
-                      }}
-                      className="px-6 py-2 bg-danger hover:bg-danger/80 text-white font-bold rounded shadow-lg transition-colors border border-white/10"
-                    >
-                      [Delete Alert]
-                    </button>
-                  )}
+
                 </div>
               </div>
             </div>

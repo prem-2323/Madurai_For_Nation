@@ -112,52 +112,6 @@ function isValidReport(report) {
   );
 }
 
-function buildClusters(reports, radiusMeters) {
-  const clusters = [];
-  const visited = new Set();
-
-  for (let index = 0; index < reports.length; index += 1) {
-    if (visited.has(index)) {
-      continue;
-    }
-
-    const stack = [index];
-    const cluster = [];
-    visited.add(index);
-
-    while (stack.length > 0) {
-      const currentIndex = stack.pop();
-      const currentReport = reports[currentIndex];
-      cluster.push(currentReport);
-
-      for (let neighborIndex = 0; neighborIndex < reports.length; neighborIndex += 1) {
-        if (visited.has(neighborIndex)) {
-          continue;
-        }
-
-        const neighbor = reports[neighborIndex];
-        const distance = getDistance(
-          currentReport.latitude,
-          currentReport.longitude,
-          neighbor.latitude,
-          neighbor.longitude
-        );
-
-        if (distance <= radiusMeters) {
-          visited.add(neighborIndex);
-          stack.push(neighborIndex);
-        }
-      }
-    }
-
-    if (cluster.length >= MIN_REPORTS_PER_HOTSPOT) {
-      clusters.push(cluster);
-    }
-  }
-
-  return clusters;
-}
-
 function getMostCommonLocation(cluster) {
   const counts = {};
   cluster.forEach((report) => {
@@ -251,6 +205,13 @@ function calculateHotspot(cluster, configuredRadius) {
     location: clusterLocation,
     createdAt: new Date(),
     sourceReportIds: cluster.map((report) => report._id),
+    sourceReportData: cluster.map((report) => ({
+      _id: report._id,
+      image: report.image || '',
+      category: report.category,
+      severity: report.severity,
+      description: report.description || '',
+    })),
   };
 }
 
@@ -258,15 +219,62 @@ async function rebuildHotspots() {
   const lookbackStart = new Date(Date.now() - LOOKBACK_HOURS * 60 * 60 * 1000);
   const configuredRadius = getConfiguredRadius();
 
+  console.log('\n========== HOTSPOT ENGINE DEBUG ==========');
+  console.log(`LOOKBACK_HOURS: ${LOOKBACK_HOURS}`);
+  console.log(`RADIUS: ${configuredRadius}m`);
+  console.log(`MIN_REPORTS_PER_HOTSPOT: ${MIN_REPORTS_PER_HOTSPOT}`);
+  console.log(`Lookback window: ${lookbackStart.toISOString()} to now`);
+
+  const totalInDb = await Report.countDocuments({});
+  console.log(`\n[STAGE 0] Total reports in MongoDB: ${totalInDb}`);
+
   const reports = await Report.find({
     createdAt: { $gte: lookbackStart },
     latitude: { $exists: true },
     longitude: { $exists: true },
-  }).select('_id latitude longitude category severity AQI confidence createdAt location');
+  }).select('_id latitude longitude category severity AQI confidence createdAt location image');
 
+  console.log(`[STAGE 1] Reports after time+coords-exist filter: ${reports.length}`);
+  if (reports.length < totalInDb) {
+    console.log(`  → Excluded: ${totalInDb - reports.length} reports (outside lookback window or missing coords)`);
+    const timestamps = reports.map(r => r.createdAt).filter(Boolean);
+    if (timestamps.length > 0) {
+      const oldestKept = new Date(Math.min(...timestamps));
+      const newestKept = new Date(Math.max(...timestamps));
+      console.log(`  → Time range of kept reports: ${oldestKept.toISOString()} to ${newestKept.toISOString()}`);
+    }
+  }
+
+  const invalidCoordsCount = reports.length - reports.filter(isValidReport).length;
   const validReports = reports.filter(isValidReport);
-  const clusters = validReports.length > 0 ? buildClusters(validReports, configuredRadius) : [];
-  const hotspots = clusters.map((cluster) => calculateHotspot(cluster, configuredRadius));
+  console.log(`[STAGE 2] Reports after isValidReport filter: ${validReports.length}`);
+  if (invalidCoordsCount > 0) {
+    console.log(`  → Excluded: ${invalidCoordsCount} reports (lat/lng is 0 or non-finite)`);
+    reports.filter(r => !isValidReport(r)).forEach(r => {
+      console.log(`  → Invalid report ${r._id}: lat=${r.latitude}, lng=${r.longitude}`);
+    });
+  }
+
+  if (validReports.length === 0) {
+    console.log('No valid reports. Skipping hotspot generation.\n');
+    await Hotspot.deleteMany({});
+    return [];
+  }
+
+  const buildResult = buildClustersWithDebug(validReports, configuredRadius);
+
+  console.log(`\n[STAGE 4] Hotspots formed: ${buildResult.clusters.length}`);
+  buildResult.clusters.forEach((cluster, i) => {
+    console.log(`  Hotspot #${i + 1}: ${cluster.length} reports, center approx (${cluster[0].latitude.toFixed(4)}, ${cluster[0].longitude.toFixed(4)})`);
+  });
+  console.log(`\n[SUMMARY]`);
+  console.log(`  Total reports in MongoDB:     ${totalInDb}`);
+  console.log(`  Within time window:           ${reports.length}`);
+  console.log(`  Valid coords:                 ${validReports.length}`);
+  console.log(`  Clustered (in hotspots):      ${buildResult.clusteredCount}`);
+  console.log(`  Unclustered (isolated/small): ${buildResult.unclusteredCount}`);
+
+  const hotspots = buildResult.clusters.map((cluster) => calculateHotspot(cluster, configuredRadius));
 
   await Hotspot.deleteMany({});
 
@@ -274,7 +282,81 @@ async function rebuildHotspots() {
     await Hotspot.insertMany(hotspots);
   }
 
+  console.log('========== END HOTSPOT ENGINE DEBUG ==========\n');
   return hotspots;
+}
+
+function buildClustersWithDebug(reports, radiusMeters) {
+  const clusters = [];
+  const visited = new Set();
+  const clusteredIndices = new Set();
+
+  console.log(`\n[STAGE 3] Clustering ${reports.length} reports with radius=${radiusMeters}m`);
+
+  for (let index = 0; index < reports.length; index += 1) {
+    if (visited.has(index)) {
+      continue;
+    }
+
+    const stack = [index];
+    const clusterIndices = [];
+    visited.add(index);
+
+    while (stack.length > 0) {
+      const currentIndex = stack.pop();
+      const currentReport = reports[currentIndex];
+      clusterIndices.push(currentIndex);
+
+      for (let neighborIndex = 0; neighborIndex < reports.length; neighborIndex += 1) {
+        if (visited.has(neighborIndex)) {
+          continue;
+        }
+
+        const neighbor = reports[neighborIndex];
+        const distance = getDistance(
+          currentReport.latitude,
+          currentReport.longitude,
+          neighbor.latitude,
+          neighbor.longitude
+        );
+
+        if (distance <= radiusMeters) {
+          visited.add(neighborIndex);
+          stack.push(neighborIndex);
+        }
+      }
+    }
+
+    const clusterReports = clusterIndices.map(i => reports[i]);
+    const clusterNum = clusters.length + 1;
+
+    if (clusterIndices.length >= MIN_REPORTS_PER_HOTSPOT) {
+      clusterIndices.forEach(i => clusteredIndices.add(i));
+      clusters.push(clusterReports);
+      console.log(`  Cluster #${clusterNum}: ${clusterIndices.length} reports → ACCEPTED as hotspot`);
+      clusterReports.forEach(r => {
+        console.log(`    Report ${r._id}: lat=${r.latitude}, lng=${r.longitude}, time=${r.createdAt?.toISOString?.() || r.createdAt}, cat=${r.category}`);
+      });
+    } else {
+      console.log(`  Cluster #${clusterNum}: ${clusterIndices.length} reports → DISCARDED (< ${MIN_REPORTS_PER_HOTSPOT} reports)`);
+      clusterReports.forEach(r => {
+        console.log(`    Unclustered ${r._id}: lat=${r.latitude}, lng=${r.longitude}, time=${r.createdAt?.toISOString?.() || r.createdAt}, cat=${r.category}`);
+      });
+    }
+  }
+
+  const unclusteredIndices = [];
+  for (let i = 0; i < reports.length; i++) {
+    if (!clusteredIndices.has(i)) {
+      unclusteredIndices.push(i);
+    }
+  }
+
+  return {
+    clusters,
+    clusteredCount: clusteredIndices.size,
+    unclusteredCount: unclusteredIndices.length,
+  };
 }
 
 function queueHotspotRefresh() {

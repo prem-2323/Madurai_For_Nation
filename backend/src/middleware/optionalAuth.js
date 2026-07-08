@@ -14,7 +14,10 @@ const optionalAuth = async (req, _res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    req.user = await User.findById(decoded.id).select('-password');
+    const userId = decoded.userId || decoded.id;
+    if (userId) {
+      req.user = await User.findById(userId).select('-password');
+    }
   } catch (_error) {
     // Ignore invalid tokens for optional auth routes
   }

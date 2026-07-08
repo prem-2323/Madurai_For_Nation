@@ -1,4 +1,5 @@
 const ai = require('../config/gemini');
+const { increment: incrementUsage } = require('./usageService');
 const {
   INSPECTION_PROMPT,
   parseGeminiJson,
@@ -36,6 +37,8 @@ const analyzeImage = async (imageBuffer, mimeType, userDescription = '') => {
   }
 
   const parsed = parseGeminiJson(rawText);
+
+  incrementUsage().catch(err => console.warn('Failed to increment Gemini usage:', err.message));
 
   return {
     pollutionDetected: Boolean(parsed.pollutionDetected),

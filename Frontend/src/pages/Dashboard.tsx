@@ -3,18 +3,19 @@ import { motion } from 'motion/react';
 import { StatCard } from '../components/StatCard';
 import { DashboardCard } from '../components/DashboardCard';
 import { ReportTable } from '../components/ReportTable';
-import { Modal } from '../components/Common';
+import { Modal, AlertBanner } from '../components/Common';
 import { PollutionReport, SeverityLevel, ReportStatus, AQIPrediction } from '../types';
-import { BarChart3, PieChart, Activity, ShieldAlert, MapPin, Calendar, HeartPulse, ClipboardCheck, Wind, Sparkles } from 'lucide-react';
+import { BarChart3, PieChart, Activity, ShieldAlert, MapPin, Calendar, HeartPulse, ClipboardCheck, Wind, Sparkles, Building2, UserCheck, Clock, CheckCircle2 } from 'lucide-react';
 import { AirQualityCard } from '../components/AirQualityCard';
 import { CATEGORIES } from '../data';
 import { fetchPrediction } from '../api/prediction';
 import { fetchAlerts } from '../api/alerts';
-import { fetchHotspots } from '../api/hotspots';
+import { fetchHotspots, updateReportDetails } from '../api/hotspots';
+import { fetchReportById } from '../api/reports';
 import { AlertData } from '../types';
 import type { PollutionHotspot } from '../types';
 import { Link } from 'react-router-dom';
-import { isOfficerOrAdmin, isAdmin, isOfficer } from '../utils/role';
+import { isOfficerOrAdmin, isOfficer } from '../utils/role';
 
 interface DashboardProps {
   reports: PollutionReport[];
@@ -38,7 +39,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [hotspots, setHotspots] = useState<PollutionHotspot[]>([]);
-  
+
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [statusMunicipal, setStatusMunicipal] = useState('pending');
+  const [statusOfficer, setStatusOfficer] = useState('');
+  const [statusTeam, setStatusTeam] = useState('');
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
+
   useEffect(() => {
     fetchAlerts().then(setAlerts).catch(() => console.error('Failed to load alerts'));
   }, []);
@@ -186,6 +195,61 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const handleViewDetails = (report: PollutionReport) => {
     setSelectedReport(report);
     setIsModalOpen(true);
+  };
+
+  const handleOpenStatusModal = async () => {
+    if (!selectedReport || !token) return;
+    setStatusMunicipal('');
+    setStatusOfficer('');
+    setStatusTeam('');
+    setStatusError(null);
+    setStatusSuccess(null);
+    setIsStatusModalOpen(true);
+    try {
+      const fullReport = await fetchReportById(selectedReport.id, token);
+      setStatusMunicipal(fullReport.municipalStatus || '');
+      setStatusOfficer(fullReport.assignedOfficerName || '');
+      setStatusTeam(fullReport.assignedTeam || '');
+    } catch {
+      setStatusOfficer('');
+      setStatusTeam('');
+    }
+  };
+
+  const handleSaveStatus = async () => {
+    if (!selectedReport || !token) return;
+    setStatusSaving(true);
+    setStatusError(null);
+    setStatusSuccess(null);
+
+    try {
+      const data: { municipalStatus?: string; assignedOfficerName?: string; assignedTeam?: string } = {};
+      if (statusMunicipal) data.municipalStatus = statusMunicipal;
+      if (statusOfficer.trim()) data.assignedOfficerName = statusOfficer.trim();
+      if (statusTeam.trim()) data.assignedTeam = statusTeam.trim();
+
+      const result = await updateReportDetails(selectedReport.id, data, token);
+      setSelectedReport({
+        ...selectedReport,
+        backendStatus: JSON.stringify({
+          municipalStatus: result.municipalStatus,
+          assignedOfficerName: result.assignedOfficerName,
+          assignedTeam: result.assignedTeam,
+          statusUpdatedAt: result.statusUpdatedAt,
+        }),
+      });
+      const changedParts: string[] = [];
+      if (result.municipalStatus) changedParts.push(result.municipalStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+      if (data.assignedOfficerName) changedParts.push(`Officer: ${data.assignedOfficerName}`);
+      if (data.assignedTeam) changedParts.push(`Team: ${data.assignedTeam}`);
+      setStatusSuccess(`Report updated — ${changedParts.join(', ') || 'Changes saved'}`);
+      setIsStatusModalOpen(false);
+      setIsModalOpen(false);
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : 'Failed to update status');
+    } finally {
+      setStatusSaving(false);
+    }
   };
 
   const getStatusTextLabel = (status: ReportStatus) => {
@@ -595,6 +659,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 Advance Audit Workflow
               </button>
             )}
+            {isOfficerOrAdmin(user) && (
+              <button
+                onClick={handleOpenStatusModal}
+                className="px-4 py-2 bg-secondary hover:bg-blue-500 text-xs font-bold text-white rounded-lg shadow-md shadow-secondary/10 transition-all"
+              >
+                Manage Status
+              </button>
+            )}
           </div>
         }
       >
@@ -702,6 +774,117 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
       </Modal>
+
+      {/* STATUS MANAGEMENT MODAL */}
+      <Modal
+        isOpen={isStatusModalOpen}
+        onClose={() => { if (!statusSaving) setIsStatusModalOpen(false); }}
+        title="Manage Municipal Response Status"
+        footer={
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsStatusModalOpen(false)}
+              disabled={statusSaving}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-white/5 text-xs font-semibold text-white rounded-lg transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveStatus}
+              disabled={statusSaving}
+              className="px-4 py-2 bg-primary hover:bg-emerald-500 text-xs font-bold text-white rounded-lg shadow-md shadow-primary/10 transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {statusSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        }
+      >
+        {statusError && (
+          <div className="mb-4">
+            <AlertBanner type="danger" message={statusError} onClose={() => setStatusError(null)} />
+          </div>
+        )}
+
+        {selectedReport && (
+          <div className="space-y-6">
+            <div className="p-4 bg-slate-900/60 rounded-xl border border-white/5 space-y-4">
+              <span className="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-secondary" />
+                Assignment Details
+              </span>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider text-muted-text font-bold">
+                    Assigned Officer
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-muted-text shrink-0" />
+                    <input
+                      type="text"
+                      value={statusOfficer}
+                      onChange={(e) => setStatusOfficer(e.target.value)}
+                      placeholder="Enter officer name..."
+                      className="w-full p-2.5 bg-slate-800 border border-white/5 focus:border-secondary/50 rounded-lg text-xs text-white placeholder-muted-text outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider text-muted-text font-bold">
+                    Assigned Team
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-muted-text shrink-0" />
+                    <input
+                      type="text"
+                      value={statusTeam}
+                      onChange={(e) => setStatusTeam(e.target.value)}
+                      placeholder="Enter team name..."
+                      className="w-full p-2.5 bg-slate-800 border border-white/5 focus:border-secondary/50 rounded-lg text-xs text-white placeholder-muted-text outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider text-muted-text font-bold">
+                    Municipal Status
+                  </label>
+                  <select
+                    value={statusMunicipal}
+                    onChange={(e) => setStatusMunicipal(e.target.value)}
+                    className="w-full p-2.5 bg-slate-800 border border-white/5 focus:border-secondary/50 rounded-lg text-xs text-white outline-none cursor-pointer transition-all"
+                  >
+                    <option value="">— Keep current —</option>
+                    <option value="pending">Report Submitted</option>
+                    <option value="under_review">Under Review</option>
+                    <option value="team_assigned">Team Assigned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] text-muted-text p-3 bg-slate-900/40 rounded-xl border border-white/5">
+              <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span>Leave fields empty to keep current values. Changes are visible to citizens immediately.</span>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* STATUS SUCCESS TOAST */}
+      {statusSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm">
+          <AlertBanner
+            type="success"
+            message="Status Updated"
+            description={statusSuccess}
+            onClose={() => setStatusSuccess(null)}
+          />
+        </div>
+      )}
 
     </div>
   );

@@ -12,8 +12,14 @@ const hotspotSchema = new mongoose.Schema({
   dominantPollution: { type: String, required: true },
   recommendedAction: { type: String, required: true },
   assignedTeam: { type: String, default: null },
+  assignedOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  assignedOfficerName: { type: String, default: '' },
   location: { type: String, default: '' },
   sourceReportIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Report' }],
+  sourceReportData: [{ _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Report' }, image: { type: String, default: '' }, category: { type: String, default: '' }, severity: { type: String, default: '' }, description: { type: String, default: '' } }],
+  municipalStatus: { type: String, enum: ['pending', 'under_review', 'team_assigned', 'in_progress', 'resolved'], default: 'pending' },
+  statusUpdatedAt: { type: Date },
+  resolvedAt: { type: Date },
   status: { type: String, default: 'Active' },
   createdAt: { type: Date, default: Date.now }
 });

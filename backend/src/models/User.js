@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, select: false },
   role: { type: String, enum: ['citizen', 'officer'], default: 'citizen' },
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
+  department: { type: String, trim: true, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 

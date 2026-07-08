@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, ArrowUpDown, ShieldAlert, CheckCircle2, AlertCircle, Eye, Trash2, Calendar } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, ShieldAlert, CheckCircle2, AlertCircle, Eye, Calendar } from 'lucide-react';
 import { PollutionReport, SeverityLevel, ReportStatus } from '../types';
-import { isAdmin, isOfficerOrAdmin } from '../utils/role';
+import { isOfficerOrAdmin } from '../utils/role';
 
 interface ReportTableProps {
   reports: PollutionReport[];
@@ -250,16 +250,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
                           </span>
                         ) : null}
 
-                        {/* Delete - Admin only */}
-                        {isAdmin(user) && onDeleteReport && (
-                          <button
-                            onClick={() => onDeleteReport(report.id)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-danger/20 hover:text-danger text-muted-text border border-white/5 transition-all"
-                            title="Delete Record"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+
                       </div>
                     </td>
                   </motion.tr>

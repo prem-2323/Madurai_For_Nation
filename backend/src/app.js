@@ -29,7 +29,7 @@ app.use('/api/officer', require('./routes/officer'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/alerts', require('./routes/alert'));
 app.use('/api/prediction', require('./routes/prediction'));
-app.use('/api/users', require('./routes/users'));
 app.use('/api/hotspots', require('./routes/hotspot'));
+app.use('/api/usage', require('./routes/usage'));
 
 module.exports = app;

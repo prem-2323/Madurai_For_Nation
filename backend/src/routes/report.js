@@ -1,9 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const { createReport, getReports, getReportById, updateReport, deleteReport, updateReportStatus } = require('../controllers/reportController');
+const { createReport, getReports, getReportById, updateReportStatus } = require('../controllers/reportController');
 const protect = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
-const { officerOnly, citizenOnly, authorize } = require('../middleware/rbac');
+const { officerOnly, citizenOnly } = require('../middleware/rbac');
 const Report = require('../models/Report');
 
 const router = express.Router();
@@ -30,8 +30,6 @@ router.get('/:id/image', async (req, res) => {
 });
 
 router.get('/:id', protect, getReportById);
-router.put('/:id', protect, officerOnly, updateReport);
-router.delete('/:id', protect, authorize('officer'), deleteReport);
 router.patch('/:id/status', protect, officerOnly, updateReportStatus);
 
 module.exports = router;
