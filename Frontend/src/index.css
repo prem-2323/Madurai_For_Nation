@@ -105,6 +105,9 @@ body::after {
 ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #2E3E56; }
 
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #2E3E56; border-radius: 2px; }
+
 /* ─── Pulsing accent glows ─── */
 .accent-glow-primary {
   box-shadow: 0 0 30px -5px rgba(22, 163, 74, 0.3);

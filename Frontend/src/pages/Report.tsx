@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { UploadCard } from '../components/UploadCard';
 import { AIResultCard } from '../components/AIResultCard';
 import { AirQualityCard } from '../components/AirQualityCard';
-import { MapPin, Navigation, Sparkles, Send, RefreshCw, AlertCircle, Check, Upload, Cpu, Map, FileCheck } from 'lucide-react';
+import {
+  MapPin, Navigation, Sparkles, Send, RefreshCw, AlertCircle, Check,
+  Upload, Cpu, Map, FileCheck,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PollutionReport, AIAnalysisResult, ReportStatus, AirQualityData } from '../types';
 import { CATEGORIES } from '../data';
 import { analyzePollutionImage, API_BASE_URL, imageUrlToFile } from '../api/analyze';
 
 const SCAN_MESSAGES = [
-  'Scanning smoke particles...',
-  'Detecting vehicles and emissions...',
-  'Analyzing pollution density...',
-  'Checking severity levels...',
-  'Estimating AQI impact...',
-  'Generating health recommendations...',
+  { text: 'Scanning smoke particles...', icon: '🔍' },
+  { text: 'Detecting vehicles and emissions...', icon: '🚗' },
+  { text: 'Analyzing pollution density...', icon: '📊' },
+  { text: 'Checking severity levels...', icon: '⚠️' },
+  { text: 'Estimating AQI impact...', icon: '🌬️' },
+  { text: 'Generating health recommendations...', icon: '🏥' },
 ];
 
-interface ReportProps {
-  onAddReport: (report: PollutionReport) => void;
-  token?: string | null;
-}
+interface ReportProps { onAddReport: (report: PollutionReport) => void; token?: string | null; }
 
 export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
   const navigate = useNavigate();
-
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
@@ -38,17 +38,15 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
   const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
   const [airQuality, setAirQuality] = useState<AirQualityData | null>(null);
   const [savedReportId, setSavedReportId] = useState<string | null>(null);
-  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [scanMessage, setScanMessage] = useState(SCAN_MESSAGES[0]);
+  const [scanIndex, setScanIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
 
-  const steps = [
-    { id: 1, label: 'Upload', icon: <Upload className="w-3.5 h-3.5" /> },
-    { id: 2, label: 'Location', icon: <Map className="w-3.5 h-3.5" /> },
-    { id: 3, label: 'AI Analysis', icon: <Cpu className="w-3.5 h-3.5" /> },
-    { id: 4, label: 'Submit', icon: <FileCheck className="w-3.5 h-3.5" /> },
-  ];
+  const steps = useMemo(() => [
+    { id: 1, label: 'Upload', icon: <Upload className="w-3 h-3" />, desc: 'Photo' },
+    { id: 2, label: 'Location', icon: <Map className="w-3 h-3" />, desc: 'GPS' },
+    { id: 3, label: 'AI Analysis', icon: <Cpu className="w-3 h-3" />, desc: 'Gemini' },
+    { id: 4, label: 'Submit', icon: <FileCheck className="w-3 h-3" />, desc: 'Report' },
+  ], []);
 
   useEffect(() => {
     if (selectedImage) setCurrentStep(1);
@@ -58,24 +56,15 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
 
   useEffect(() => {
     if (!isLoadingAI) return;
-    setScanMessage(SCAN_MESSAGES[0]);
-    let i = 0;
-    const interval = setInterval(() => {
-      i = (i + 1) % SCAN_MESSAGES.length;
-      setScanMessage(SCAN_MESSAGES[i]);
-    }, 2000);
+    setScanIndex(0);
+    const interval = setInterval(() => setScanIndex(prev => (prev + 1) % SCAN_MESSAGES.length), 2200);
     return () => clearInterval(interval);
   }, [isLoadingAI]);
 
   const handleImageSelected = (imageUrl: string, options?: { file?: File; category?: string; description?: string }) => {
     setSelectedImage(imageUrl);
     setSelectedFile(options?.file || null);
-    setIsAnalyzed(false);
-    setAiResult(null);
-    setAirQuality(null);
-    setSavedReportId(null);
-    setAnalyzeError(null);
-    setSubmitError(null);
+    setIsAnalyzed(false); setAiResult(null); setAirQuality(null); setSavedReportId(null);
     if (options?.category) {
       setCategory(options.category);
       setDescription(options.description || '');
@@ -95,7 +84,7 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
     setIsLocating(true);
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => { setCoords({ lat: position.coords.latitude, lng: position.coords.longitude }); setLocation(`Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`); setIsLocating(false); },
+        (pos) => { setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocation(`Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)}`); setIsLocating(false); },
         () => { setCoords({ lat: 9.9252, lng: 78.1198 }); setLocation('Meenakshi Amman Temple Area, Madurai'); setIsLocating(false); }
       );
     } else { setIsLocating(false); alert('Geolocation not supported.'); }
@@ -108,196 +97,202 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
   };
 
   const handleAnalyzeWithAI = async () => {
-    if (!selectedImage) { toast.error('Please upload or capture a photo first.'); return; }
+    if (!selectedImage) { toast.error('Please upload a photo first.'); return; }
     setIsLoadingAI(true);
-    setAnalyzeError(null);
     try {
       const imageFile = await resolveImageFile();
-      const { analysis, airQuality: aqiData, report } = await analyzePollutionImage({ imageFile, latitude: coords.lat, longitude: coords.lng, description, location, token });
-      setAiResult(analysis);
-      setAirQuality(aqiData);
-      setCategory(analysis.pollutionType);
-      setIsAnalyzed(true);
-      setSavedReportId(report.id);
-      const serverImage = report.image.startsWith('http') ? report.image : `${API_BASE_URL}${report.image}`;
-      setSelectedImage(serverImage);
+      const { analysis, airQuality: aqiData, report } = await analyzePollutionImage({
+        imageFile, latitude: coords.lat, longitude: coords.lng, description, location, token
+      });
+      setAiResult(analysis); setAirQuality(aqiData); setCategory(analysis.pollutionType);
+      setIsAnalyzed(true); setSavedReportId(report.id);
+      const si = report.image.startsWith('http') ? report.image : `${API_BASE_URL}${report.image}`;
+      setSelectedImage(si);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'AI analysis failed';
-      toast.error(message, { id: 'ai-analyze-error' });
-      setIsAnalyzed(false);
-      setAiResult(null);
+      toast.error(error instanceof Error ? error.message : 'AI analysis failed', { id: 'ai-err' });
+      setIsAnalyzed(false); setAiResult(null);
     } finally { setIsLoadingAI(false); }
   };
 
   const handleClear = () => {
-    setSelectedImage(null);
-    setSelectedFile(null);
-    setDescription('');
-    setCategory(CATEGORIES[0]);
-    setLocation('');
-    setCoords({ lat: 9.9252, lng: 78.1198 });
-    setIsAnalyzed(false);
-    setAiResult(null);
-    setAirQuality(null);
-    setSavedReportId(null);
-    setAnalyzeError(null);
-    setSubmitError(null);
+    setSelectedImage(null); setSelectedFile(null); setDescription(''); setCategory(CATEGORIES[0]);
+    setLocation(''); setCoords({ lat: 9.9252, lng: 78.1198 }); setIsAnalyzed(false);
+    setAiResult(null); setAirQuality(null); setSavedReportId(null);
   };
 
   const handleSubmitReport = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitError(null);
-    if (!selectedImage) { toast.error('Please upload an image first.'); return; }
-    if (!location) { toast.error('Please supply or detect coordinates.'); return; }
-    if (!aiResult) { toast.error('Please run AI analysis before submitting.'); return; }
+    if (!selectedImage) { toast.error('Upload an image first.'); return; }
+    if (!location) { toast.error('Set coordinates.'); return; }
+    if (!aiResult) { toast.error('Run AI analysis first.'); return; }
     try {
       const newReport: PollutionReport = {
         id: savedReportId || `REP-${Date.now()}`,
-        imageUrl: selectedImage,
-        category: aiResult.pollutionType,
+        imageUrl: selectedImage, category: aiResult.pollutionType,
         description: description || aiResult.reason || `Reported ${aiResult.pollutionType.toLowerCase()}.`,
-        severity: aiResult.severity,
-        location,
-        coordinates: coords,
-        time: new Date().toISOString(),
-        status: 'AI Analyzed' as ReportStatus,
-        confidence: aiResult.confidence,
-        healthRisk: aiResult.healthRisk,
-        recommendation: aiResult.recommendation,
-        pollutionDetected: aiResult.pollutionDetected,
-        reason: aiResult.reason,
-        estimatedPM25Impact: aiResult.estimatedPM25Impact,
-        estimatedPM10Impact: aiResult.estimatedPM10Impact,
-        emergencyLevel: aiResult.emergencyLevel,
-        needsMunicipalAction: aiResult.needsMunicipalAction,
-        possibleSource: aiResult.possibleSource,
-        priority: aiResult.priority,
-        airQuality: airQuality ?? undefined,
+        severity: aiResult.severity, location, coordinates: coords,
+        time: new Date().toISOString(), status: 'AI Analyzed' as ReportStatus,
+        confidence: aiResult.confidence, healthRisk: aiResult.healthRisk,
+        recommendation: aiResult.recommendation, pollutionDetected: aiResult.pollutionDetected,
+        reason: aiResult.reason, estimatedPM25Impact: aiResult.estimatedPM25Impact,
+        estimatedPM10Impact: aiResult.estimatedPM10Impact, emergencyLevel: aiResult.emergencyLevel,
+        needsMunicipalAction: aiResult.needsMunicipalAction, possibleSource: aiResult.possibleSource,
+        priority: aiResult.priority, airQuality: airQuality ?? undefined,
       };
       onAddReport(newReport);
-      toast.success('Report submitted successfully! Awaiting municipal review.', { id: 'report-submit-success' });
+      toast.success('Report submitted! Awaiting municipal review.', { id: 'submit-ok' });
       setTimeout(() => navigate('/citizen/reports'), 1500);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to submit report';
-      toast.error(message, { id: 'report-submit-error' });
+      toast.error(error instanceof Error ? error.message : 'Failed to submit', { id: 'submit-err' });
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-left">
-
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Header */}
-      <div className="space-y-1">
-        <span className="text-xs font-bold text-primary uppercase tracking-widest block">Citizen Node</span>
-        <h1 className="heading-text text-white">Report Localized Pollution</h1>
-        <p className="body-text text-muted-text max-w-3xl">
-          Upload a photo of pollution in Madurai. Gemini 2.5 Flash inspects the image, saves structured data to MongoDB, and feeds your dashboard and map.
-        </p>
-      </div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between">
+        <div className="space-y-0.5">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] block">Citizen Node · Madurai Municipal</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight"><span className="text-gradient">Report Localized Pollution</span></h1>
+          <p className="text-xs text-muted-text">Upload a photo. Gemini 2.5 Flash inspects it. Data feeds the dashboard and map.</p>
+        </div>
+      </motion.div>
 
-      {/* Wizard Steps */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-6">
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
+      {/* Stepper */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }}
+        className="glass-panel rounded-xl p-2.5 sm:p-3">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
           {steps.map((step, i) => (
             <React.Fragment key={step.id}>
-              <div className="flex flex-col items-center gap-1.5">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                  currentStep >= i ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/20' : 'bg-slate-800 text-muted-text border border-white/5'
-                }`}>
-                  {currentStep > i ? <Check className="w-4 h-4" /> : step.icon}
-                </div>
-                <span className={`text-[10px] font-semibold ${currentStep >= i ? 'text-white' : 'text-muted-text'}`}>{step.label}</span>
+              <div className="flex flex-col items-center gap-0.5">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-bold transition-all ${
+                  currentStep >= i ? 'bg-gradient-to-br from-primary to-secondary text-white' : currentStep === i - 1
+                    ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-800/80 text-muted-text border border-white/5'
+                }`}>{currentStep > i ? <Check className="w-2.5 h-2.5" /> : step.icon}</div>
+                <span className={`text-[8px] font-semibold ${currentStep >= i ? 'text-white' : 'text-muted-text'}`}>{step.label}</span>
               </div>
-              {i < steps.length - 1 && (
-                <div className={`flex-1 h-px mx-2 sm:mx-4 ${currentStep > i ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-white/10'}`} />
-              )}
+              {i < steps.length - 1 && <div className={`flex-1 h-px mx-1 rounded-full ${currentStep > i ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-white/5'}`} />}
             </React.Fragment>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-7 space-y-6">
+      {/* Two-column layout with equal-height rows */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* LEFT COLUMN (60%): Upload + Form */}
+        <div className="lg:col-span-3 grid grid-rows-[auto_1fr] gap-6">
           <UploadCard onImageSelected={handleImageSelected} selectedImage={selectedImage} onClear={handleClear} />
 
-          <form onSubmit={handleSubmitReport} className="glass-panel rounded-2xl p-6 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-white block uppercase tracking-wide">Incident Category</label>
-                <select value={category} onChange={(e) => { setCategory(e.target.value); setIsAnalyzed(false); setAiResult(null); }} className="w-full p-3 bg-slate-900 border border-white/5 focus:border-primary/50 rounded-xl text-xs text-white outline-none cursor-pointer transition-all">
-                  {CATEGORIES.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
-                  {aiResult && !CATEGORIES.includes(aiResult.pollutionType) && (<option value={aiResult.pollutionType}>{aiResult.pollutionType}</option>)}
-                </select>
+          <motion.form initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+            onSubmit={handleSubmitReport} className="glass-panel rounded-2xl p-5 flex flex-col h-full">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-primary/10"><MapPin className="w-3.5 h-3.5 text-primary" /></div>
+                <div><h3 className="text-sm font-bold text-white">Report Details</h3><p className="text-[9px] text-muted-text/60">Category, location, description</p></div>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-white block uppercase tracking-wide flex items-center justify-between">
-                  <span>Pinpoint Coordinates</span>
-                  <span className="text-[10px] text-muted-text lowercase">GPS</span>
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
-                    <input type="text" required value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Retrieve GPS coordinates..." className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-white/5 focus:border-primary/50 rounded-xl text-xs text-white placeholder-muted-text outline-none transition-all" />
-                  </div>
-                  <button type="button" onClick={handleGetLocation} disabled={isLocating} className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-white/5 flex items-center justify-center cursor-pointer disabled:opacity-50" title="Get current location">
-                    {isLocating ? <RefreshCw className="w-4 h-4 animate-spin text-secondary" /> : <Navigation className="w-4 h-4 text-secondary" />}
-                  </button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-bold text-white uppercase tracking-wider">Category</label>
+                  <select value={category} onChange={(e) => { setCategory(e.target.value); setIsAnalyzed(false); setAiResult(null); }}
+                    className="w-full p-2 bg-slate-900 border border-white/5 focus:border-primary/50 rounded-xl text-xs text-white outline-none cursor-pointer transition-all">
+                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    {aiResult && !CATEGORIES.includes(aiResult.pollutionType) && <option value={aiResult.pollutionType}>{aiResult.pollutionType}</option>}
+                  </select>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-white block uppercase tracking-wide">Visual Description</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detail smoke density, smells, toxic runoff, or waste quantities..." rows={4} className="w-full p-3 bg-slate-900 border border-white/5 focus:border-primary/50 rounded-xl text-xs text-white placeholder-muted-text outline-none transition-all resize-none" />
-            </div>
-
-            {/* Scanning Animation */}
-            {isLoadingAI && (
-              <div className="p-4 bg-secondary/5 rounded-xl border border-secondary/20 relative overflow-hidden">
-                <div className="scan-line" />
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin w-8 h-8 border-2 border-secondary border-t-transparent rounded-full" />
-                  <div>
-                    <p className="text-xs font-semibold text-secondary">Gemini Vision Pipeline Active</p>
-                    <p className="text-[10px] text-muted-text mt-0.5">{scanMessage}</p>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-bold text-white uppercase tracking-wider flex items-center justify-between">
+                    <span>Coordinates</span>
+                    <span className="text-[8px] text-muted-text/60 font-normal">GPS</span>
+                  </label>
+                  <div className="flex gap-1.5">
+                    <div className="relative flex-1">
+                      <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-text" />
+                      <input type="text" required value={location} onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Enter location..." className="w-full pl-8 pr-2.5 py-2 bg-slate-900 border border-white/5 focus:border-primary/50 rounded-xl text-xs text-white placeholder-muted-text/50 outline-none transition-all" />
+                    </div>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="button" onClick={handleGetLocation} disabled={isLocating}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-white/5 disabled:opacity-50 transition-all" title="Get location">
+                      {isLocating ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-secondary" /> : <Navigation className="w-3.5 h-3.5 text-secondary" />}
+                    </motion.button>
                   </div>
                 </div>
               </div>
-            )}
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button type="button" onClick={handleAnalyzeWithAI} disabled={!selectedImage || isLoadingAI} className="btn-ripple flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-secondary to-blue-500 text-white text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none hover:shadow-lg hover:shadow-secondary/20 hover:-translate-y-0.5">
-                <Sparkles className="w-4 h-4" />
-                <span>{isLoadingAI ? 'Analyzing...' : 'Analyze with AI'}</span>
-              </button>
-              <button type="button" onClick={handleClear} className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-white/5 text-xs font-bold transition-all">
-                Clear Form
-              </button>
-              <button type="submit" disabled={!selectedImage || !location || !isAnalyzed} className="btn-ripple flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary hover:bg-emerald-500 text-white text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5">
-                <Send className="w-4 h-4" />
-                <span>Submit Report</span>
-              </button>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-white uppercase tracking-wider">Description</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe smoke density, smells, waste quantities..."
+                  rows={2} className="w-full p-2.5 bg-slate-900 border border-white/5 focus:border-primary/50 rounded-xl text-xs text-white placeholder-muted-text/50 outline-none transition-all resize-none" />
+              </div>
+
+              <AnimatePresence>
+                {isLoadingAI && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="relative overflow-hidden">
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-secondary/10 to-blue-500/10 border border-secondary/20 relative overflow-hidden">
+                      <div className="scan-line" />
+                      <div className="flex items-center gap-3 relative z-10">
+                        <div className="relative shrink-0">
+                          <div className="w-8 h-8 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
+                          <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-secondary animate-pulse" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2"><span className="text-xs font-bold text-secondary">Gemini Pipeline</span><span className="text-[8px] text-secondary/60 font-mono">gemini-2.5-flash</span></div>
+                          <AnimatePresence mode="wait">
+                            <motion.p key={scanIndex} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}
+                              className="text-[10px] text-muted-text mt-0.5">{SCAN_MESSAGES[scanIndex].icon} {SCAN_MESSAGES[scanIndex].text}</motion.p>
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                      <motion.div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-secondary to-blue-400" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: 13, ease: 'linear' }} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {!isAnalyzed && selectedImage && (
-              <div className="p-3 bg-warning/10 rounded-xl border border-warning/20 flex gap-2 items-center">
-                <AlertCircle className="w-4 h-4 text-warning shrink-0" />
-                <span className="text-[10px] text-muted-text">Run <strong>Analyze with AI</strong> first — Gemini will inspect the image and save results to MongoDB.</span>
+            <div className="flex-shrink-0 space-y-4 pt-5">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="button" onClick={handleAnalyzeWithAI}
+                  disabled={!selectedImage || isLoadingAI}
+                  className="btn-ripple flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-secondary to-blue-500 text-white text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none hover:shadow-lg hover:shadow-secondary/20">
+                  <Sparkles className="w-3.5 h-3.5" />{isLoadingAI ? 'Analyzing...' : 'Analyze with AI'}</motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="button" onClick={handleClear}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-white/5 text-xs font-bold transition-all">Clear</motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit"
+                  disabled={!selectedImage || !location || !isAnalyzed}
+                  className="btn-ripple flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-emerald-500 text-white text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none hover:shadow-lg hover:shadow-primary/20">
+                  <Send className="w-3.5 h-3.5" /> Submit Report</motion.button>
               </div>
-            )}
-          </form>
+
+              <AnimatePresence>
+                {!isAnalyzed && selectedImage && (
+                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                    className="p-2.5 bg-warning/10 rounded-xl border border-warning/20 flex gap-2 items-center">
+                    <AlertCircle className="w-3.5 h-3.5 text-warning shrink-0" />
+                    <span className="text-[9px] text-muted-text">Run <strong className="text-white">Analyze with AI</strong> to inspect and save to database.</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.form>
         </div>
 
-        <div className="lg:col-span-5 h-full space-y-6">
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-primary uppercase tracking-widest block">Results</span>
-            <h2 className="text-xl font-extrabold text-white tracking-tight">Live Air Quality</h2>
-            <p className="text-sm text-muted-text">Populated from the backend AQI response returned by OpenWeather.</p>
-          </div>
+        {/* RIGHT COLUMN (40%): AQI + AI Diagnostics */}
+        <div className="lg:col-span-2 grid grid-rows-[auto_auto_1fr] gap-5">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="space-y-0.5">
+            <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.15em] block">Live Monitoring</span>
+            <h2 className="text-lg font-extrabold tracking-tight"><span className="text-gradient-blue">Real-Time Air Quality</span></h2>
+            <p className="text-xs text-muted-text">OpenWeather data for your coordinates.</p>
+          </motion.div>
+
           <AirQualityCard data={airQuality} isLoading={isLoadingAI} />
           <AIResultCard isLoading={isLoadingAI} isAnalyzed={isAnalyzed} result={aiResult} imageUrl={selectedImage} airQuality={airQuality} />
         </div>
       </div>
+
+      {/* Footer */}
+      <div className="text-center"><span className="text-[8px] text-muted-text/40">Madurai For Nation · AI-Powered Environmental Monitoring Platform</span></div>
     </div>
   );
 };
