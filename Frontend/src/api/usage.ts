@@ -8,6 +8,14 @@ export interface GeminiUsageData {
   percentage: number;
 }
 
+export const GEMINI_USAGE_UPDATED_EVENT = 'gemini-usage-updated';
+
+export function emitGeminiUsageUpdated() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(GEMINI_USAGE_UPDATED_EVENT));
+  }
+}
+
 export async function fetchGeminiUsage(token?: string | null): Promise<GeminiUsageData> {
   const headers: Record<string, string> = {};
   if (token) {

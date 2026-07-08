@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Menu, X, Wind, Shield, UserCheck, Zap, Bell, ChevronDown, Settings, LogOut, User, Github } from 'lucide-react';
+import { Menu, X, Wind, Shield, UserCheck, Bell, ChevronDown, Settings, LogOut, User, Github } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getNavItemsForRole, getUserRole } from '../utils/role';
-import { fetchGeminiUsage } from '../api/usage';
+import { fetchGeminiUsage, GEMINI_USAGE_UPDATED_EVENT } from '../api/usage';
 
 interface NavbarProps {
   user: any;
@@ -14,9 +14,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
-  const [geminiRemaining, setGeminiRemaining] = useState<number | null>(null);
-  const [geminiLimit, setGeminiLimit] = useState<number>(0);
-  const [geminiUsed, setGeminiUsed] = useState<number>(0);
+  const [geminiUsage, setGeminiUsage] = useState<{ used: number | null; limit: number | null } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -35,20 +33,35 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     const loadUsage = async () => {
       try {
         const data = await fetchGeminiUsage();
-        setGeminiRemaining(data.remaining);
-        setGeminiLimit(data.limit);
-        setGeminiUsed(data.used);
-      } catch { console.warn('[NAVBAR] Could not fetch Gemini usage'); }
+        setGeminiUsage({ used: data.used, limit: data.limit });
+      } catch {
+        setGeminiUsage({ used: null, limit: null });
+      }
     };
+
+    const handleUsageUpdated = () => {
+      void loadUsage();
+    };
+
     loadUsage();
-    const interval = setInterval(loadUsage, 60000);
+    const interval = window.setInterval(() => {
+      void loadUsage();
+    }, 30000);
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
-    return () => { clearInterval(interval); window.removeEventListener('scroll', handleScroll); };
+    window.addEventListener(GEMINI_USAGE_UPDATED_EVENT, handleUsageUpdated);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener(GEMINI_USAGE_UPDATED_EVENT, handleUsageUpdated);
+    };
   }, []);
 
   const navItems = getNavItemsForRole(user);
   const role = getUserRole(user);
+  const geminiUsageLabel = geminiUsage && geminiUsage.used !== null && geminiUsage.limit !== null
+    ? `Gemini: ${geminiUsage.used}/${geminiUsage.limit}`
+    : 'Gemini: --/--';
 
   const getRoleIcon = () => {
     const actualRole = role?.toLowerCase() || 'citizen';
@@ -102,12 +115,9 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             </nav>
 
             <div className="hidden md:flex items-center gap-2">
-              {geminiRemaining !== null && (
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-900/30 border border-amber-700/40 text-amber-300 text-[10px] font-semibold whitespace-nowrap" title={`Gemini API: ${geminiUsed} / ${geminiLimit} used today`}>
-                  <Zap className="w-3 h-3" />
-                  <span>{geminiRemaining}</span>
-                </div>
-              )}
+              <div className="text-[10px] text-muted-text font-medium whitespace-nowrap">
+                {geminiUsageLabel}
+              </div>
 
               {user ? (
                 <>
@@ -234,12 +244,9 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               </div>
 
               <div className="space-y-3 pt-4 border-t border-slate-800">
-                {geminiRemaining !== null && (
-                  <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-900/30 border border-amber-700/40 text-amber-300 text-[10px] font-semibold">
-                    <Zap className="w-3 h-3" />
-                    <span>Gemini: {geminiRemaining} credits left</span>
-                  </div>
-                )}
+                <div className="text-center text-[10px] text-muted-text font-medium">
+                  {geminiUsageLabel}
+                </div>
 
                 {user ? (
                   <button onClick={() => { onLogout(); setIsOpen(false); }} className="w-full py-2.5 rounded-xl bg-danger/15 hover:bg-danger/20 border border-danger/35 text-white text-sm font-semibold cursor-pointer">

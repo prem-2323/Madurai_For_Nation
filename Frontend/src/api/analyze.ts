@@ -1,4 +1,5 @@
 import type { AIAnalysisResult, AirQualityData } from '../types';
+import { emitGeminiUsageUpdated } from './usage';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -44,6 +45,8 @@ export async function analyzePollutionImage(params: {
   if (!response.ok || !payload.success) {
     throw new Error(payload.message || 'Failed to analyze image');
   }
+
+  emitGeminiUsageUpdated();
 
   const data = payload.data as {
     analysis: AIAnalysisResult;
