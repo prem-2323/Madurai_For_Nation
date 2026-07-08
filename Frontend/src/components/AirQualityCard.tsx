@@ -1,5 +1,7 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircle } from '@fortawesome/free-solid-svg-icons';
 import { Wind, Thermometer, Droplets } from 'lucide-react';
 import { AirQualityData } from '../types';
 
@@ -26,6 +28,16 @@ const aqiStyles = (level: string) => {
 };
 
 export const AirQualityCard: React.FC<AirQualityCardProps> = ({ data, isLoading }) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
   if (isLoading) {
     return (
       <div className="glass-panel rounded-2xl border border-white/5 p-5 shadow-xl animate-pulse">
@@ -63,9 +75,27 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ data, isLoading 
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-xl"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      className="relative glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-xl group"
     >
-      <div className="flex items-center gap-2 p-5 bg-slate-900/40 border-b border-white/5">
+      <AnimatePresence>
+        {isHovering && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="pointer-events-none absolute inset-0 z-0"
+            style={{
+              background: `radial-gradient(400px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(14, 165, 233, 0.08), transparent 40%)`,
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 flex items-center gap-2 p-5 bg-slate-900/40 border-b border-white/5">
         <div className="p-1.5 rounded-lg bg-secondary/15 text-secondary">
           <Wind className="w-4 h-4" />
         </div>
@@ -81,7 +111,7 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ data, isLoading 
             <span className="text-[10px] font-bold uppercase text-muted-text">AQI</span>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <span className={`inline-flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full border ${aqiStyles(data.aqiLevel)}`}>
-                {data.aqiLevel === 'Good' ? '🟢' : data.aqiLevel === 'Fair' ? '🟡' : data.aqiLevel === 'Moderate' ? '🟠' : data.aqiLevel === 'Poor' ? '🔴' : '🟣'} {data.aqiLevel}
+                <FontAwesomeIcon icon={faCircle} className={data.aqiLevel === 'Good' ? 'text-success w-3 h-3' : data.aqiLevel === 'Fair' ? 'text-amber-300 w-3 h-3' : data.aqiLevel === 'Moderate' ? 'text-orange-400 w-3 h-3' : data.aqiLevel === 'Poor' ? 'text-orange-500 w-3 h-3' : 'text-purple-400 w-3 h-3'} /> {data.aqiLevel}
               </span>
               <span className="text-3xl font-extrabold text-white">{data.aqi}</span>
             </div>
@@ -101,30 +131,46 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ data, isLoading 
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {pollutants.map((p) => (
-            <div key={p.label} className="p-3 bg-slate-900/60 rounded-xl border border-white/5">
+          {pollutants.map((p, index) => (
+            <motion.div 
+              key={p.label} 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 + index * 0.05, type: "spring" }}
+              className="p-3 bg-slate-900/60 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors"
+            >
               <span className="text-[10px] font-bold uppercase text-muted-text block">{p.label}</span>
               <span className="text-sm font-extrabold text-white">{p.value}</span>
               <span className="text-[10px] text-muted-text ml-1">{p.unit}</span>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-1 border-t border-white/5">
-          <div className="p-3 bg-slate-900/60 rounded-xl border border-white/5 flex items-center gap-2">
-            <Thermometer className="w-4 h-4 text-orange-400 shrink-0" />
+          <motion.div 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="p-3 bg-slate-900/60 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors flex items-center gap-2"
+          >
+            <Thermometer className="w-4 h-4 text-orange-400 shrink-0 group-hover:rotate-12 transition-transform" />
             <div>
               <span className="text-[10px] font-bold uppercase text-muted-text block">Temperature</span>
               <span className="text-sm font-extrabold text-white">{data.temperature.toFixed(1)}°C</span>
             </div>
-          </div>
-          <div className="p-3 bg-slate-900/60 rounded-xl border border-white/5 flex items-center gap-2">
-            <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="p-3 bg-slate-900/60 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors flex items-center gap-2"
+          >
+            <Droplets className="w-4 h-4 text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
             <div>
               <span className="text-[10px] font-bold uppercase text-muted-text block">Humidity</span>
               <span className="text-sm font-extrabold text-white">{data.humidity}%</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </motion.div>

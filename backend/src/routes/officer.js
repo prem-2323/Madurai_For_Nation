@@ -192,4 +192,41 @@ router.get('/analytics', protect, officerOnly, async (req, res) => {
   }
 });
 
+router.get('/fix-report-coords', protect, officerOnly, async (req, res) => {
+  try {
+    const MADURAI_LAT = 9.9252;
+    const MADURAI_LNG = 78.1198;
+    const MADURAI_LOC = 'Meenakshi Amman Temple Area, Madurai';
+
+    const result = await Report.updateMany(
+      {
+        $or: [
+          { latitude: { $lt: 8 } },
+          { latitude: { $gt: 11 } },
+          { longitude: { $lt: 77 } },
+          { longitude: { $gt: 79 } },
+        ],
+      },
+      {
+        $set: {
+          latitude: MADURAI_LAT,
+          longitude: MADURAI_LNG,
+          location: MADURAI_LOC,
+        },
+      }
+    );
+
+    // Regenerate hotspots after fixing coordinates
+    const { generateHotspots } = require('../services/hotspotEngine');
+    await generateHotspots();
+
+    successResponse(res, {
+      modifiedCount: result.modifiedCount,
+      message: `Fixed ${result.modifiedCount} report(s) with Madurai coordinates`,
+    });
+  } catch (error) {
+    errorResponse(res, error.message, 500);
+  }
+});
+
 module.exports = router;

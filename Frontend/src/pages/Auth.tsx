@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getPostLoginPath, getStoredUser } from '../utils/auth';
 import { motion } from 'motion/react';
 import { Lock, Mail, User, ShieldAlert, Sparkles, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/analyze';
+import toast from 'react-hot-toast';
 
 interface AuthProps {
   onLoginSuccess: (user: any, token: string) => void;
@@ -22,18 +24,24 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const storedUser = getStoredUser();
+    const storedToken = localStorage.getItem('token');
+    if (storedUser && storedToken) {
+      navigate(getPostLoginPath(storedUser), { replace: true });
+    }
+  }, [navigate]);
+
   const handleTabSwitch = (toLogin: boolean) => {
     setIsLogin(toLogin);
     setError('');
-    setSuccess('');
     if (!toLogin) {
       setRole('citizen');
     }
   };
 
   const navigateByRole = (user: any) => {
-    const targetPath = user?.role === 'officer' ? '/officer/dashboard' : '/citizen/dashboard';
-    navigate(targetPath, { replace: true });
+    navigate(getPostLoginPath(user), { replace: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +60,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         const { user, token } = response.data.data;
         console.log('[AUTH] Login response - user role:', user?.role);
         onLoginSuccess(user, token);
+        toast.success(`Welcome back, ${user.name || 'User'}!`, { id: 'login-success' });
         navigateByRole(user);
       } else {
         console.log('[AUTH] Submitting register for email:', email, '| selected role:', role);
@@ -64,13 +73,13 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         const { user, token } = response.data.data;
         console.log('[AUTH] Register response - user role:', user?.role, '| token present:', !!token);
         onLoginSuccess(user, token);
+        toast.success(`Account created! Welcome to CleanAir AI.`, { id: 'register-success' });
         navigateByRole(user);
       }
     } catch (err: any) {
-      setError(
-        err.response?.data?.message || 
-        'An error occurred during authentication. Please check your credentials.'
-      );
+      const msg = err.response?.data?.message || 'An error occurred during authentication. Please check your credentials.';
+      setError(msg);
+      toast.error(msg, { id: 'auth-error' });
     } finally {
       setIsLoading(false);
     }
@@ -194,27 +203,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             </div>
           )}
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-3.5 rounded-xl bg-danger/20 border border-danger/40 flex items-start gap-2.5 text-xs text-white"
-            >
-              <ShieldAlert className="w-4.5 h-4.5 text-danger shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </motion.div>
-          )}
-
-          {success && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-3.5 rounded-xl bg-success/20 border border-success/40 flex items-start gap-2.5 text-xs text-white"
-            >
-              <Sparkles className="w-4.5 h-4.5 text-success shrink-0 mt-0.5 animate-pulse" />
-              <span>{success}</span>
-            </motion.div>
-          )}
+          {/* Form alerts removed in favor of toast */}
 
           <button
             type="submit"

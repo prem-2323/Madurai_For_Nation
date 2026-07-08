@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { FileText, BarChart3, AlertTriangle, UserCircle, CheckCircle2, Clock, Activity } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/analyze';
 import { getUserRole } from '../utils/role';
+import { AnimatedCounter } from '../components/AnimatedCounter';
+import { SkeletonCard } from '../components/Skeleton';
 
 interface OfficerDashboardProps {
   user?: any;
@@ -37,6 +39,16 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ user, token 
   const role = getUserRole(user);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>, key: string) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -70,8 +82,15 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ user, token 
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -79,16 +98,40 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ user, token 
             const Icon = card.icon;
             const value = data ? (data as any)[card.key] : '—';
             return (
-              <motion.div key={card.key} whileHover={{ y: -4, scale: 1.01 }}>
-                <Link to="/officer/reports" className="block h-full rounded-2xl border border-white/5 bg-slate-900/80 p-5 shadow-lg shadow-slate-950/20 hover:border-secondary/30 transition-all">
-                  <div className="flex items-center justify-between">
-                    <div className={`rounded-xl bg-gradient-to-br ${card.color} p-2 opacity-80`}>
+              <motion.div key={card.key} whileHover={{ y: -4, scale: 1.01 }} className="h-full">
+                <Link 
+                  to="/officer/reports" 
+                  className="relative block h-full rounded-2xl border border-white/5 glass-panel p-5 shadow-lg overflow-hidden group"
+                  onMouseMove={(e) => handleMouseMove(e, card.key)}
+                  onMouseEnter={() => setHoveredCard(card.key)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  {/* Spotlight effect */}
+                  <AnimatePresence>
+                    {hoveredCard === card.key && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="pointer-events-none absolute inset-0 z-0"
+                        style={{
+                          background: `radial-gradient(300px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(14, 165, 233, 0.1), transparent 40%)`,
+                        }}
+                      />
+                    )}
+                  </AnimatePresence>
+
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className={`rounded-xl bg-gradient-to-br ${card.color} p-2 opacity-80 group-hover:scale-110 transition-transform`}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-2xl font-extrabold text-white">{value}</span>
+                    <span className="text-2xl font-extrabold text-white">
+                      {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
+                    </span>
                   </div>
-                  <h2 className="mt-4 text-lg font-semibold text-white">{card.title}</h2>
-                  <p className="mt-2 text-sm text-muted-text">{card.desc}</p>
+                  <h2 className="relative z-10 mt-4 text-lg font-semibold text-white">{card.title}</h2>
+                  <p className="relative z-10 mt-2 text-sm text-muted-text">{card.desc}</p>
                 </Link>
               </motion.div>
             );
@@ -96,7 +139,7 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ user, token 
         </div>
       )}
 
-      <div className="rounded-2xl border border-white/5 bg-slate-900/70 p-6">
+      <div className="rounded-2xl border border-white/5 glass-panel p-6">
         <div className="flex items-center gap-2 text-secondary">
           <BarChart3 className="w-5 h-5" />
           <h2 className="text-lg font-semibold text-white">Officer tools</h2>

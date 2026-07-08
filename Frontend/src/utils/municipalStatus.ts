@@ -2,7 +2,7 @@ import type { MunicipalStatus } from '../types';
 
 export interface PublicStatusInfo {
   label: string;
-  emoji: string;
+  icon: string;
   color: string;
   dotColor: string;
   message: string;
@@ -12,14 +12,14 @@ export interface PublicStatusInfo {
 export interface StatusStage {
   key: MunicipalStatus;
   label: string;
-  emoji: string;
+  icon: string;
   dotColor: string;
 }
 
 const statusMap: Record<MunicipalStatus, PublicStatusInfo> = {
   pending: {
     label: 'Report Submitted',
-    emoji: '🔵',
+    icon: 'circle',
     color: 'text-blue-400',
     dotColor: 'bg-blue-500',
     message: 'Your pollution report has been submitted and is awaiting review by municipal authorities.',
@@ -27,7 +27,7 @@ const statusMap: Record<MunicipalStatus, PublicStatusInfo> = {
   },
   under_review: {
     label: 'Under Review',
-    emoji: '🔍',
+    icon: 'magnifying-glass',
     color: 'text-yellow-400',
     dotColor: 'bg-yellow-500',
     message: 'Municipal authorities are reviewing your report and assessing the required response.',
@@ -35,7 +35,7 @@ const statusMap: Record<MunicipalStatus, PublicStatusInfo> = {
   },
   team_assigned: {
     label: 'Team Assigned',
-    emoji: '🟠',
+    icon: 'circle',
     color: 'text-orange-400',
     dotColor: 'bg-orange-500',
     message: 'A municipal response team has been assigned to address the reported pollution issue.',
@@ -43,7 +43,7 @@ const statusMap: Record<MunicipalStatus, PublicStatusInfo> = {
   },
   in_progress: {
     label: 'Cleanup In Progress',
-    emoji: '🟠',
+    icon: 'circle',
     color: 'text-orange-400',
     dotColor: 'bg-orange-500',
     message: 'Municipal team has been assigned and cleanup is currently in progress.',
@@ -51,7 +51,7 @@ const statusMap: Record<MunicipalStatus, PublicStatusInfo> = {
   },
   resolved: {
     label: 'Resolved',
-    emoji: '🟢',
+    icon: 'circle',
     color: 'text-green-400',
     dotColor: 'bg-green-500',
     message: 'This pollution report has been resolved by the municipal authorities.',
@@ -60,11 +60,11 @@ const statusMap: Record<MunicipalStatus, PublicStatusInfo> = {
 };
 
 export const STATUS_STAGES: StatusStage[] = [
-  { key: 'pending', label: 'Report Submitted', emoji: '📝', dotColor: 'bg-blue-500' },
-  { key: 'under_review', label: 'Under Review', emoji: '🔍', dotColor: 'bg-yellow-500' },
-  { key: 'team_assigned', label: 'Team Assigned', emoji: '👥', dotColor: 'bg-orange-500' },
-  { key: 'in_progress', label: 'In Progress', emoji: '🛠️', dotColor: 'bg-orange-500' },
-  { key: 'resolved', label: 'Resolved', emoji: '✅', dotColor: 'bg-green-500' },
+  { key: 'pending', label: 'Report Submitted', icon: 'file-lines', dotColor: 'bg-blue-500' },
+  { key: 'under_review', label: 'Under Review', icon: 'magnifying-glass', dotColor: 'bg-yellow-500' },
+  { key: 'team_assigned', label: 'Team Assigned', icon: 'users', dotColor: 'bg-orange-500' },
+  { key: 'in_progress', label: 'In Progress', icon: 'screwdriver-wrench', dotColor: 'bg-orange-500' },
+  { key: 'resolved', label: 'Resolved', icon: 'check', dotColor: 'bg-green-500' },
 ];
 
 const stageOrder: MunicipalStatus[] = ['pending', 'under_review', 'team_assigned', 'in_progress', 'resolved'];

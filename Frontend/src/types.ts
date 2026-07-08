@@ -48,7 +48,7 @@ export interface AQIPrediction {
   predictedAQI: number;
   risk: 'Good' | 'Fair' | 'Moderate' | 'Poor' | 'Very Poor';
   trend: 'Increasing' | 'Improving' | 'Stable';
-  trendArrow: '⬆' | '⬇' | '➡';
+  trendArrow: 'arrow-up' | 'arrow-down' | 'arrow-right';
   confidence: number;
   reason: string;
   inputs?: {

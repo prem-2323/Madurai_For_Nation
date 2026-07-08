@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, type ReactNode } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
@@ -26,7 +27,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { RoleProtectedRoute } from './components/RoleProtectedRoute';
 import { PollutionReport, ReportStatus } from './types';
 import { INITIAL_REPORTS } from './data';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import axios from 'axios';
 import { API_BASE_URL } from './api/analyze';
 import { fetchMapReports } from './api/reports';
@@ -39,6 +40,18 @@ export default function App() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  // Mouse glow tracker
+  useEffect(() => {
+    const handleMouse = (e: MouseEvent) => {
+      if (glowRef.current) {
+        glowRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+      }
+    };
+    window.addEventListener('mousemove', handleMouse);
+    return () => window.removeEventListener('mousemove', handleMouse);
+  }, []);
 
   // Verify token and fetch/sync user profile on mount
   useEffect(() => {
@@ -48,7 +61,7 @@ export default function App() {
         return;
       }
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/auth/profile323`, {
+        const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -116,61 +129,96 @@ export default function App() {
   };
 
   const PageTransition = ({ children }: { children: ReactNode }) => (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }}>
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.4, type: 'spring', bounce: 0 }}
+      className="w-full"
+    >
       {children}
     </motion.div>
   );
 
+  const AnimatedRoutes = () => {
+    const location = useLocation();
+    return (
+      <AnimatePresence mode="wait">
+        <Routes location={location}>
+          <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+          <Route path="/auth" element={<PageTransition><Auth onLoginSuccess={handleLoginSuccess} /></PageTransition>} />
+          <Route path="/access-denied" element={<PageTransition><AccessDenied /></PageTransition>} />
+
+          <Route path="/citizen/dashboard" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><CitizenDashboard reports={reports} onAddReport={handleAddReport} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/citizen/report" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><Report onAddReport={handleAddReport} token={token} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/citizen/reports" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><CitizenReports token={token} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/citizen/map" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><MapPage reports={reports} token={token} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/citizen/hotspots" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><HotspotsPage token={token} user={user} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/citizen/profile" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/citizen/aqi" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><AQI /></PageTransition></RoleProtectedRoute>} />
+
+          <Route path="/officer/dashboard" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><OfficerDashboard user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/officer/reports" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Dashboard reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/officer/hotspots" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><HotspotsPage token={token} user={user} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/officer/profile" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></RoleProtectedRoute>} />
+          <Route path="/officer/analytics" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><AdminAnalytics token={token} /></PageTransition></RoleProtectedRoute>} />
+
+          <Route path="/report" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Report onAddReport={handleAddReport} token={token} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Dashboard reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="/map" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><MapPage reports={reports} token={token} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="/hotspots" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/hotspots" replace /> : <PageTransition><HotspotsPage token={token} user={user} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="/alerts" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Alerts token={token} user={user} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/analytics" replace /> : <PageTransition><AdminAnalytics token={token} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+          <Route path="/profile" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/profile" replace /> : <PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition>; })()}</ProtectedRoute>} />
+          <Route path="*" element={
+            (() => {
+              const role = getUserRole(user);
+              const target = role === 'officer' ? '/officer/dashboard' : user ? '/citizen/dashboard' : '/';
+              console.log('[APP] Catch-all redirect - user role:', role, '| target:', target);
+              return <Navigate to={target} replace />;
+            })()
+          } />
+        </Routes>
+      </AnimatePresence>
+    );
+  };
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-[#0F172A] text-white selection:bg-secondary/30 selection:text-white">
-        
+        {/* Mouse Glow */}
+        <div ref={glowRef} id="mouse-glow" />
+
+        {/* Toast Notifications */}
+        <Toaster 
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: '#0F172A',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+            },
+            success: {
+              iconTheme: { primary: '#10B981', secondary: '#0F172A' },
+            },
+            error: {
+              iconTheme: { primary: '#EF4444', secondary: '#0F172A' },
+            }
+          }}
+        />
+
         {/* Sticky Header Navigation */}
         <Navbar user={user} onLogout={handleLogout} />
 
-        {/* Dynamic Route Content (With delicate page fade-ins) */}
-        <main className="flex-1 relative">
-          <Routes>
-            <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-            <Route path="/auth" element={<PageTransition><Auth onLoginSuccess={handleLoginSuccess} /></PageTransition>} />
-            <Route path="/access-denied" element={<PageTransition><AccessDenied /></PageTransition>} />
-
-            <Route path="/citizen/dashboard" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><CitizenDashboard reports={reports} onAddReport={handleAddReport} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/citizen/report" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><Report onAddReport={handleAddReport} token={token} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/citizen/reports" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><CitizenReports token={token} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/citizen/map" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><MapPage reports={reports} token={token} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/citizen/hotspots" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><HotspotsPage token={token} user={user} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/citizen/profile" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/citizen/aqi" element={<RoleProtectedRoute user={user} role="citizen"><PageTransition><AQI /></PageTransition></RoleProtectedRoute>} />
-
-            <Route path="/officer/dashboard" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><OfficerDashboard user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/officer/reports" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Dashboard reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/officer/hotspots" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><HotspotsPage token={token} user={user} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/officer/profile" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition></RoleProtectedRoute>} />
-            <Route path="/officer/analytics" element={<RoleProtectedRoute user={user} role="officer"><PageTransition><AdminAnalytics token={token} /></PageTransition></RoleProtectedRoute>} />
-
-            <Route path="/report" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Report onAddReport={handleAddReport} token={token} /></PageTransition>; })()}</ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Dashboard reports={reports} onUpdateStatus={handleUpdateStatus} onDeleteReport={handleDeleteReport} user={user} token={token} /></PageTransition>; })()}</ProtectedRoute>} />
-            <Route path="/map" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><MapPage reports={reports} token={token} /></PageTransition>; })()}</ProtectedRoute>} />
-            <Route path="/hotspots" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/hotspots" replace /> : <PageTransition><HotspotsPage token={token} user={user} /></PageTransition>; })()}</ProtectedRoute>} />
-            <Route path="/alerts" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/dashboard" replace /> : <PageTransition><Alerts token={token} user={user} /></PageTransition>; })()}</ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/analytics" replace /> : <PageTransition><AdminAnalytics token={token} /></PageTransition>; })()}</ProtectedRoute>} />
-            <Route path="/about" element={<PageTransition><About /></PageTransition>} />
-            <Route path="/profile" element={<ProtectedRoute user={user}>{(() => { const r = getUserRole(user); return r === 'officer' ? <Navigate to="/officer/profile" replace /> : <PageTransition><Profile token={token} onLogout={handleLogout} /></PageTransition>; })()}</ProtectedRoute>} />
-            <Route path="*" element={
-              (() => {
-                const role = getUserRole(user);
-                const target = role === 'officer' ? '/officer/dashboard' : user ? '/citizen/dashboard' : '/';
-                console.log('[APP] Catch-all redirect - user role:', role, '| target:', target);
-                return <Navigate to={target} replace />;
-              })()
-            } />
-          </Routes>
+        {/* Dynamic Route Content */}
+        <main className="flex-1 relative pt-14">
+          <AnimatedRoutes />
         </main>
 
         {/* Global Footer Anchor */}
         <Footer />
-
       </div>
     </Router>
   );

@@ -6,8 +6,12 @@ export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-slate-950 border-t border-white/5 pt-16 pb-8 text-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="relative bg-slate-950 pt-16 pb-8 text-sm overflow-hidden">
+      {/* Glowing Top Border */}
+      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-secondary/50 to-transparent opacity-50" />
+      <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-secondary/5 to-transparent pointer-events-none" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           {/* Brand Col */}
           <div className="space-y-4">
@@ -23,13 +27,13 @@ export const Footer: React.FC = () => {
               An advanced, hyperlocal climate intelligence and pollution monitoring network. Empowering citizens and municipalities to safeguard clean air using AI-assisted imagery and spatial analytics.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-muted-text hover:text-white transition-colors">
+              <a href="#" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-[#1DA1F2] transition-all duration-300">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="text-muted-text hover:text-white transition-colors">
+              <a href="#" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-[#0A66C2] transition-all duration-300">
                 <Linkedin className="w-5 h-5" />
               </a>
-              <a href="#" className="text-muted-text hover:text-white transition-colors">
+              <a href="#" className="text-muted-text hover:text-white hover:-translate-y-1 hover:text-white transition-all duration-300">
                 <Github className="w-5 h-5" />
               </a>
             </div>

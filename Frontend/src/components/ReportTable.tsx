@@ -24,6 +24,16 @@ export const ReportTable: React.FC<ReportTableProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   // Filter & Search Logic
   const filteredReports = reports.filter((report) => {
@@ -143,8 +153,33 @@ export const ReportTable: React.FC<ReportTableProps> = ({
       </div>
 
       {/* Table Container */}
-      <div className="glass-panel border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
+      <div 
+        className="relative glass-panel rounded-2xl overflow-hidden shadow-2xl group"
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        {/* Animated Gradient Border */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 opacity-30 pointer-events-none group-hover:opacity-100 transition-opacity duration-1000 bg-[length:200%_auto] animate-gradient" />
+        <div className="absolute inset-[1px] bg-slate-950 rounded-2xl z-0" />
+        
+        {/* Spotlight effect */}
+        <AnimatePresence>
+          {isHovering && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="pointer-events-none absolute inset-0 z-0"
+              style={{
+                background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(14, 165, 233, 0.05), transparent 40%)`,
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        <div className="relative z-10 overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead className="bg-slate-900/80 border-b border-white/5 text-xs text-muted-text font-bold uppercase tracking-wider">
               <tr>
@@ -159,14 +194,18 @@ export const ReportTable: React.FC<ReportTableProps> = ({
             </thead>
             <tbody className="divide-y divide-white/5">
               {paginatedReports.length > 0 ? (
-                paginatedReports.map((report) => (
+                paginatedReports.map((report, index) => (
                   <motion.tr
                     key={report.id}
                     layoutId={`row-${report.id}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-slate-800/40 transition-colors group"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="relative hover:bg-white/[0.02] transition-colors group/row cursor-pointer"
                   >
+                    {/* Hover Indicator left bar */}
+                    <td className="absolute left-0 top-0 bottom-0 w-1 bg-secondary opacity-0 group-hover/row:opacity-100 transition-opacity pointer-events-none" />
+
                     {/* ID & Miniature Image */}
                     <td className="p-4 pl-6 font-mono text-xs font-bold text-white whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -271,7 +310,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
         </div>
 
         {/* Pagination Footer */}
-        <div className="bg-slate-900/60 border-t border-white/5 px-6 py-4 flex items-center justify-between">
+        <div className="relative z-10 bg-slate-900/60 border-t border-white/5 px-6 py-4 flex items-center justify-between">
           <span className="text-xs text-muted-text">
             Showing <strong className="text-white">{filteredReports.length ? startIndex + 1 : 0}</strong> to{' '}
             <strong className="text-white">{Math.min(startIndex + itemsPerPage, filteredReports.length)}</strong> of{' '}

@@ -1,8 +1,11 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L, { divIcon } from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat.js';
 import 'leaflet/dist/leaflet.css';
+import { icon as faIcon } from '@fortawesome/fontawesome-svg-core';
+import { faIndustry, faCar, faHardHat, faDroplet, faFire, faTrash, faLeaf, faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import { AlertCircle, Calendar, Filter, Info, LocateFixed, MapPin, Search, ShieldAlert } from 'lucide-react';
 import { PollutionHotspot, PollutionReport, SeverityLevel } from '../types';
 import { CATEGORIES } from '../data';
@@ -45,22 +48,31 @@ function createMarkerIcon(severity: SeverityLevel, selected?: boolean) {
   });
 }
 
-function getCategoryEmoji(category: string) {
-  const normalized = category.toLowerCase();
+const CATEGORY_ICONS: Record<string, string> = {
+  industrial: faIcon(faIndustry).html.join(''),
+  traffic: faIcon(faCar).html.join(''),
+  vehicle: faIcon(faCar).html.join(''),
+  exhaust: faIcon(faCar).html.join(''),
+  construction: faIcon(faHardHat).html.join(''),
+  water: faIcon(faDroplet).html.join(''),
+  burning: faIcon(faFire).html.join(''),
+  waste: faIcon(faTrash).html.join(''),
+  dump: faIcon(faTrash).html.join(''),
+  clean: faIcon(faLeaf).html.join(''),
+};
+const DEFAULT_CAT_ICON = faIcon(faLocationDot).html.join('');
 
-  if (normalized.includes('industrial')) return '🏭';
-  if (normalized.includes('traffic') || normalized.includes('exhaust') || normalized.includes('vehicle')) return '🚗';
-  if (normalized.includes('construction')) return '🏗';
-  if (normalized.includes('water')) return '💧';
-  if (normalized.includes('burning')) return '🔥';
-  if (normalized.includes('waste') || normalized.includes('dump')) return '🗑️';
-  if (normalized.includes('clean')) return '🌿';
-  return '📍';
+function getCategoryIconSvg(category: string): string {
+  const normalized = category.toLowerCase();
+  for (const [key, svg] of Object.entries(CATEGORY_ICONS)) {
+    if (normalized.includes(key)) return svg;
+  }
+  return DEFAULT_CAT_ICON;
 }
 
 function createCategoryMarkerIcon(category: string, severity: SeverityLevel, selected?: boolean) {
   const color = getMarkerColor(severity);
-  const emoji = getCategoryEmoji(category);
+  const iconSvg = getCategoryIconSvg(category);
   const size = selected ? 34 : 30;
 
   return divIcon({
@@ -68,8 +80,8 @@ function createCategoryMarkerIcon(category: string, severity: SeverityLevel, sel
     html: `
       <div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">
         <span style="position:absolute;inset:-10px;border-radius:9999px;background:${color};opacity:${selected ? 0.3 : 0.18};filter:blur(1px);"></span>
-        <span style="position:absolute;inset:0;border-radius:9999px;background:${color};border:2px solid #ffffff;box-shadow:0 12px 28px rgba(15,23,42,0.42);display:flex;align-items:center;justify-content:center;font-size:${selected ? 17 : 15}px;line-height:1;">
-          ${emoji}
+        <span style="position:absolute;inset:0;border-radius:9999px;background:${color};border:2px solid #ffffff;box-shadow:0 12px 28px rgba(15,23,42,0.42);display:flex;align-items:center;justify-content:center;padding:4px;color:white;">
+          ${iconSvg}
         </span>
       </div>
     `,
@@ -160,6 +172,16 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
@@ -236,9 +258,28 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[620px] rounded-2xl overflow-hidden border border-white/5 bg-slate-950 shadow-2xl relative">
-      <div className="w-full lg:w-80 bg-slate-900 border-b lg:border-b-0 lg:border-r border-white/5 p-5 flex flex-col justify-between shrink-0 overflow-y-auto z-10">
-        <div className="space-y-6">
+    <div className="flex flex-col lg:flex-row h-[620px] max-h-[80vh] rounded-2xl overflow-hidden border border-white/5 bg-slate-950 shadow-2xl relative">
+      <div 
+        className="relative w-full lg:w-80 bg-slate-900 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col shrink-0 z-10 group"
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <AnimatePresence>
+          {isHovering && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="pointer-events-none absolute inset-0 z-0"
+              style={{
+                background: `radial-gradient(400px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(14, 165, 233, 0.06), transparent 40%)`,
+              }}
+            />
+          )}
+        </AnimatePresence>
+        <div className="relative z-10 p-5 overflow-y-auto flex-1 space-y-4">
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
               <Filter className="w-4.5 h-4.5 text-secondary" /> Spatial Filters
@@ -345,7 +386,7 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
           )}
         </div>
 
-        <div className="pt-4 border-t border-white/5 space-y-2.5 mt-6 lg:mt-0">
+        <div className="relative z-10 p-5 pt-4 border-t border-white/5 space-y-2.5 shrink-0">
           <div className="flex items-center justify-between text-xs text-muted-text">
             <span>Active Markers</span>
             <strong className="text-white font-mono bg-slate-950 px-2 py-0.5 rounded border border-white/5">
@@ -376,7 +417,7 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
         </div>
       </div>
 
-      <div className="flex-1 relative bg-slate-950">
+      <div className="flex-1 relative bg-slate-950 min-h-[300px]">
         {error && (
           <div className="absolute top-4 left-4 right-4 z-20 p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-xs">
             {error}
@@ -556,19 +597,11 @@ export const PollutionMap: React.FC<PollutionMapProps> = ({ reports, hotspots = 
           </div>
         )}
 
-        <div className="absolute top-4 right-4 bg-slate-900/95 border border-white/5 text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center gap-3 backdrop-blur-md text-muted-text z-10 shadow-lg pointer-events-none">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-success" /> Low
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-warning" /> Medium
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-danger" /> High
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#7f1d1d]" /> Critical
-          </div>
+        <div className="absolute top-4 right-4 bg-slate-900/95 border border-white/5 text-[10px] font-mono px-2 py-1 rounded-xl flex items-center gap-2 backdrop-blur-md text-muted-text z-10 shadow-lg pointer-events-none flex-wrap max-w-[180px]">
+          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success shrink-0" /> Low</div>
+          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning shrink-0" /> Med</div>
+          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-danger shrink-0" /> High</div>
+          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#7f1d1d] shrink-0" /> Crit</div>
         </div>
 
         <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden sm:block">

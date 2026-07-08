@@ -2,7 +2,7 @@ const Report = require('../models/Report');
 const Hotspot = require('../models/Hotspot');
 
 const LOOKBACK_HOURS = Number.parseInt(process.env.HOTSPOT_LOOKBACK_HOURS || '', 10) || 72;
-const MIN_REPORTS_PER_HOTSPOT = 3;
+const MIN_REPORTS_PER_HOTSPOT = 2;
 const MIN_RADIUS_METERS = 300;
 const MAX_RADIUS_METERS = 500;
 const DEFAULT_RADIUS_METERS = 400;

@@ -13,6 +13,16 @@ export const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ reports }) => {
   const [severityFilter, setSeverityFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [locationSearch, setLocationSearch] = useState('');
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   // Coordinate projection boundaries for the map view
   const mapBounds = {
@@ -88,8 +98,28 @@ export const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ reports }) => {
     <div className="flex flex-col lg:flex-row h-[620px] rounded-2xl overflow-hidden border border-white/5 bg-slate-950 shadow-2xl relative">
       
       {/* 1. LEFT SIDEBAR FILTERS */}
-      <div className="w-full lg:w-80 bg-slate-900 border-b lg:border-b-0 lg:border-r border-white/5 p-5 flex flex-col justify-between shrink-0 overflow-y-auto z-10">
-        <div className="space-y-6">
+      <div 
+        className="relative w-full lg:w-80 bg-slate-900 border-b lg:border-b-0 lg:border-r border-white/5 p-5 flex flex-col justify-between shrink-0 overflow-y-auto z-10 group"
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <AnimatePresence>
+          {isHovering && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="pointer-events-none absolute inset-0 z-0"
+              style={{
+                background: `radial-gradient(400px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(14, 165, 233, 0.08), transparent 40%)`,
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        <div className="relative z-10 space-y-6">
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
               <Filter className="w-4.5 h-4.5 text-secondary" /> Spatial Filters
@@ -155,7 +185,7 @@ export const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ reports }) => {
         </div>
 
         {/* Sidebar Footer Metrics */}
-        <div className="pt-4 border-t border-white/5 space-y-2.5 mt-6 lg:mt-0">
+        <div className="relative z-10 pt-4 border-t border-white/5 space-y-2.5 mt-6 lg:mt-0">
           <div className="flex items-center justify-between text-xs text-muted-text">
             <span>Filtered Reports</span>
             <strong className="text-white font-mono bg-slate-950 px-2 py-0.5 rounded border border-white/5">
@@ -178,7 +208,7 @@ export const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ reports }) => {
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
         
         {/* Decorative map background outline */}
-        <svg className="absolute inset-0 w-full h-full text-slate-800/40 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="absolute inset-0 w-full h-full text-slate-800/40 pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
           {/* Simulated Puget Sound / Elliott Bay outline on Left */}
           <path d="M 0,0 Q 150,150 120,300 T 50,550 T 0,620 L 0,0 Z" fill="rgba(14, 165, 233, 0.015)" stroke="rgba(14, 165, 233, 0.08)" strokeWidth="2" strokeDasharray="5,5" />
           
@@ -190,6 +220,19 @@ export const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ reports }) => {
           <path d="M 0,350 Q 200,320 400,380 T 500,410" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1" />
           <path d="M 100,100 Q 250,220 380,180" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1" />
         </svg>
+
+        {/* Radar Scanning Sweep */}
+        <motion.div 
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full pointer-events-none z-0"
+          style={{
+            background: 'conic-gradient(from 0deg, transparent 70%, rgba(14, 165, 233, 0.1) 90%, rgba(14, 165, 233, 0.4) 100%)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+        />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-secondary/30 rounded-full blur-[2px] pointer-events-none z-0"></div>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-secondary/10 rounded-full pointer-events-none z-0"></div>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-secondary/5 rounded-full pointer-events-none z-0"></div>
 
         {/* HUD Overlay Labels */}
         <div className="absolute top-4 right-4 bg-slate-900/95 border border-white/5 text-[10px] font-mono px-3 py-1.5 rounded-xl flex items-center gap-2 backdrop-blur-md text-muted-text z-10 shadow-lg">

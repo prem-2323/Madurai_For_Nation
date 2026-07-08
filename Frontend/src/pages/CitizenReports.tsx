@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircle, faMagnifyingGlass, faFileLines, faUsers, faScrewdriverWrench, faCheck, faCamera } from '@fortawesome/free-solid-svg-icons';
 import {
   ClipboardList,
   Calendar,
@@ -26,7 +28,9 @@ import {
   getStageIndex,
   stageOrder,
 } from '../utils/municipalStatus';
-import { LoadingSpinner, EmptyState } from '../components/Common';
+import { EmptyState } from '../components/Common';
+import { SkeletonCard } from '../components/Skeleton';
+import toast from 'react-hot-toast';
 
 interface CitizenReportsProps {
   token?: string | null;
@@ -52,7 +56,7 @@ function getAQIColor(aqi: number): string {
   return 'text-green-400 bg-green-500/10 border-green-400/30';
 }
 
-const FALLBACK_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect fill="#1e293b" width="80" height="80"/><text x="40" y="44" text-anchor="middle" fill="#64748b" font-size="24" font-family="sans-serif">📷</text></svg>');
+const FALLBACK_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect fill="#1e293b" width="80" height="80"/><g fill="none" stroke="#64748b" stroke-width="2" transform="translate(24,20)"><rect x="2" y="8" width="32" height="24" rx="4"/><circle cx="18" cy="20" r="6"/><path d="M12 8 L14 4 L22 4 L24 8"/></g></svg>');
 
 function resolveImageUrl(image: string): string {
   if (!image) return '';
@@ -74,7 +78,9 @@ export const CitizenReports: React.FC<CitizenReportsProps> = ({ token }) => {
       const data = await fetchMyReports(token);
       setReports(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load reports');
+      const msg = err instanceof Error ? err.message : 'Failed to load reports';
+      setError(msg);
+      toast.error(msg, { id: 'fetch-reports-error' });
     } finally {
       setLoading(false);
     }
@@ -86,8 +92,10 @@ export const CitizenReports: React.FC<CitizenReportsProps> = ({ token }) => {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-16">
-        <LoadingSpinner />
+      <div className="max-w-4xl mx-auto px-4 py-16 space-y-6">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
       </div>
     );
   }
@@ -173,11 +181,11 @@ export const CitizenReports: React.FC<CitizenReportsProps> = ({ token }) => {
                             referrerPolicy="no-referrer"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).parentElement!.textContent = '📷';
+                              (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
                             }}
                           />
                         ) : (
-                          <span>📷</span>
+                          <FontAwesomeIcon icon={faCamera} className="w-8 h-8 text-slate-400" />
                         )}
                       </div>
                       <div className="space-y-2 min-w-0">
@@ -195,7 +203,7 @@ export const CitizenReports: React.FC<CitizenReportsProps> = ({ token }) => {
                         )}
                       </div>
                     </div>
-                    <span className="text-xl shrink-0">{statusInfo.emoji}</span>
+                    <span className="text-xl shrink-0"><FontAwesomeIcon icon={statusInfo.icon === 'circle' ? faCircle : statusInfo.icon === 'magnifying-glass' ? faMagnifyingGlass : faCircle} className={statusInfo.color} /></span>
                   </div>
                 </div>
 

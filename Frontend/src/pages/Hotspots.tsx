@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Circle, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCamera } from '@fortawesome/free-solid-svg-icons';
 import {
   Flame,
   ShieldAlert,
@@ -23,12 +25,13 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PollutionHotspot } from '../types';
+import { getPublicStatusInfo } from '../utils/municipalStatus';
 import { fetchHotspots, updateHotspotStatus, assignTeam as assignTeamToHotspot } from '../api/hotspots';
 import { fetchPrediction } from '../api/prediction';
 import { formatHotspotTimestamp } from '../utils/hotspotTransform';
-import { getPublicStatusInfo } from '../utils/municipalStatus';
 import { API_BASE_URL } from '../api/analyze';
-import { Modal, LoadingSpinner, EmptyState, AlertBanner } from '../components/Common';
+import { Modal, LoadingSpinner, EmptyState } from '../components/Common';
+import toast from 'react-hot-toast';
 
 const MADURAI_CENTER: [number, number] = [9.9252, 78.1198];
 const DEFAULT_ZOOM = 12;
@@ -120,7 +123,6 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
   const [assignTeam, setAssignTeam] = useState('');
   const [detailModal, setDetailModal] = useState<PollutionHotspot | null>(null);
   const [predictionData, setPredictionData] = useState<Record<string, number>>({});
-  const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'danger' | 'info'; text: string } | null>(null);
 
   const isOfficer = user?.role === 'officer';
 
@@ -131,7 +133,9 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
       const data = await fetchHotspots(token, isOfficer);
       setHotspots(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load hotspots');
+      const msg = err instanceof Error ? err.message : 'Failed to load hotspots';
+      setError(msg);
+      toast.error(msg, { id: 'hotspots-fetch' });
     } finally {
       setLoading(false);
     }
@@ -202,11 +206,10 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
         )
       );
       const info = getPublicStatusInfo(nextStatus as any);
-      setActionMsg({ type: 'success', text: `Status advanced to "${info.label}"` });
+      toast.success(`Status advanced to "${info.label}"`, { id: 'hotspot-status' });
     } catch (err) {
-      setActionMsg({ type: 'danger', text: err instanceof Error ? err.message : 'Failed to update status' });
+      toast.error(err instanceof Error ? err.message : 'Failed to update status', { id: 'hotspot-status-err' });
     }
-    setTimeout(() => setActionMsg(null), 3000);
   };
 
   const handleAssignTeam = async () => {
@@ -216,11 +219,10 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
       setHotspots((prev) => prev.map((h) => (h.id === assignModal.id ? { ...h, assignedTeam: updated.assignedTeam } : h)));
       setAssignModal(null);
       setAssignTeam('');
-      setActionMsg({ type: 'success', text: `Team "${updated.assignedTeam}" assigned to hotspot` });
+      toast.success(`Team "${updated.assignedTeam}" assigned to hotspot`, { id: 'hotspot-assign' });
     } catch (err) {
-      setActionMsg({ type: 'danger', text: err instanceof Error ? err.message : 'Failed to assign team' });
+      toast.error(err instanceof Error ? err.message : 'Failed to assign team', { id: 'hotspot-assign-err' });
     }
-    setTimeout(() => setActionMsg(null), 3000);
   };
 
   return (
@@ -249,44 +251,36 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
         </div>
       </div>
 
-      {actionMsg && (
-        <AlertBanner
-          type={actionMsg.type as 'success' | 'danger' | 'info'}
-          message={actionMsg.text}
-          onClose={() => setActionMsg(null)}
-        />
-      )}
-
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="p-4 rounded-2xl bg-card-dark border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-1">
           <span className="text-[10px] font-bold text-muted-text uppercase tracking-wider flex items-center gap-1.5">
             <Flame className="w-3.5 h-3.5 text-red-400" /> Active Hotspots
           </span>
           <p className="text-2xl font-extrabold text-white">{stats.active}</p>
           <p className="text-[10px] text-muted-text">Currently active clusters</p>
         </div>
-        <div className="p-4 rounded-2xl bg-card-dark border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-1">
           <span className="text-[10px] font-bold text-muted-text uppercase tracking-wider flex items-center gap-1.5">
             <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> Critical
           </span>
           <p className="text-2xl font-extrabold text-red-400">{stats.critical}</p>
           <p className="text-[10px] text-muted-text">Require immediate action</p>
         </div>
-        <div className="p-4 rounded-2xl bg-card-dark border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-1">
           <span className="text-[10px] font-bold text-muted-text uppercase tracking-wider flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-orange-400" /> High Risk
           </span>
           <p className="text-2xl font-extrabold text-orange-400">{stats.highRisk}</p>
           <p className="text-[10px] text-muted-text">Areas to monitor closely</p>
         </div>
-        <div className="p-4 rounded-2xl bg-card-dark border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-1">
           <span className="text-[10px] font-bold text-muted-text uppercase tracking-wider flex items-center gap-1.5">
             <Gauge className="w-3.5 h-3.5 text-yellow-400" /> Average AQI
           </span>
           <p className="text-2xl font-extrabold text-yellow-300">{stats.avgAqi || '—'}</p>
           <p className="text-[10px] text-muted-text">Across all hotspots</p>
         </div>
-        <div className="p-4 rounded-2xl bg-card-dark border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-1">
           <span className="text-[10px] font-bold text-muted-text uppercase tracking-wider flex items-center gap-1.5">
             <BarChart3 className="w-3.5 h-3.5 text-blue-400" /> Reports Inside
           </span>
@@ -295,7 +289,7 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row h-[600px] rounded-2xl overflow-hidden border border-white/5 bg-slate-950 shadow-2xl">
+      <div className="flex flex-col lg:flex-row h-[600px] max-h-[80vh] rounded-2xl overflow-hidden border border-white/5 bg-slate-950 shadow-2xl">
         <div className="w-full lg:w-80 bg-slate-900 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col shrink-0 z-10">
           <div className="p-4 border-b border-white/5 space-y-3">
             <div className="flex items-center justify-between">
@@ -361,7 +355,7 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
           </div>
         </div>
 
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-[300px]">
           {error && (
             <div className="absolute top-4 left-4 right-4 z-20 p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-xs">
               {error}
@@ -440,11 +434,11 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
                                   <img src={resolveImgUrl(src.image)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).style.display = 'none';
-                                      (e.target as HTMLImageElement).parentElement!.textContent = '📷';
+                                      (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
                                     }}
                                   />
                                 ) : (
-                                  <span className="text-slate-400">📷</span>
+                                  <FontAwesomeIcon icon={faCamera} className="w-5 h-5 text-slate-400" />
                                 )}
                               </div>
                             ))}
@@ -526,7 +520,7 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
                 key={hotspot.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl bg-card-dark border border-slate-800 overflow-hidden group hover:border-slate-700 transition-all"
+                className="rounded-2xl glass-panel border border-slate-800 overflow-hidden group hover:border-slate-700 transition-all"
               >
                 <div className="p-5 space-y-4">
                   <div className="flex items-start justify-between gap-3">
@@ -735,7 +729,7 @@ export const HotspotsPage: React.FC<HotspotsPageProps> = ({ token, user }) => {
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
-                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-full h-20 flex items-center justify-center text-2xl">📷</div>';
+                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-full h-20 flex items-center justify-center"><svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>';
                           }}
                         />
                       ) : (

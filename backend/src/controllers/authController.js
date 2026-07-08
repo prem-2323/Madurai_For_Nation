@@ -4,11 +4,11 @@ const { successResponse, errorResponse } = require('../utils/response');
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    console.log('📝 REGISTER: Received role from frontend:', role);
+    console.log('[REGISTER] REGISTER: Received role from frontend:', role);
     
     // Validate role: only allow 'citizen' or 'officer'
     const allowedRole = (role === 'citizen' || role === 'officer') ? role : 'citizen';
-    console.log('✓ REGISTER: Validated role as:', allowedRole);
+    console.log('[OK] REGISTER: Validated role as:', allowedRole);
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -22,7 +22,7 @@ exports.register = async (req, res) => {
       password, 
       role: allowedRole  // Ensure role is saved correctly
     });
-    console.log('✓ REGISTER: User created in DB with role:', user.role, '| User ID:', user._id);
+    console.log('[OK] REGISTER: User created in DB with role:', user.role, '| User ID:', user._id);
     
     const token = user.generateAuthToken();
     
@@ -35,11 +35,11 @@ exports.register = async (req, res) => {
       status: user.status,
       createdAt: user.createdAt
     };
-    console.log('✓ REGISTER: Sending response with role:', userResponse.role);
+    console.log('[OK] REGISTER: Sending response with role:', userResponse.role);
 
     successResponse(res, { user: userResponse, token }, 'User registered successfully', 201);
   } catch (error) {
-    console.error('❌ REGISTER ERROR:', error.message);
+    console.error('[ERROR] REGISTER ERROR:', error.message);
     errorResponse(res, error.message, 500);
   }
 };
@@ -47,14 +47,14 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('🔐 LOGIN: Attempting login for email:', email);
+    console.log('[LOGIN] LOGIN: Attempting login for email:', email);
 
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
       return errorResponse(res, 'Invalid credentials', 401);
     }
 
-    console.log('✓ LOGIN: User found with role:', user.role, '| User ID:', user._id);
+    console.log('[OK] LOGIN: User found with role:', user.role, '| User ID:', user._id);
 
     if (user.status === 'suspended') {
       return errorResponse(res, 'Account has been suspended. Contact administrator.', 403);
@@ -76,11 +76,11 @@ exports.login = async (req, res) => {
       createdAt: user.createdAt
     };
     
-    console.log('✓ LOGIN: Sending response with role:', userResponse.role);
+    console.log('[OK] LOGIN: Sending response with role:', userResponse.role);
 
     successResponse(res, { user: userResponse, token }, 'Login successful');
   } catch (error) {
-    console.error('❌ LOGIN ERROR:', error.message);
+    console.error('[ERROR] LOGIN ERROR:', error.message);
     errorResponse(res, error.message, 500);
   }
 };
@@ -90,11 +90,11 @@ exports.getMe = async (req, res) => {
     // req.user is already populated by auth middleware
     // Return the authenticated user with all fields including role
     if (!req.user) {
-      console.warn('⚠️ GETME: No user found in request context');
+      console.warn('[WARN] GETME: No user found in request context');
       return errorResponse(res, 'User not found', 401);
     }
     
-    console.log('👤 GETME: Fetching profile for user ID:', req.user._id, '| Role in memory:', req.user.role);
+    console.log('[USER] GETME: Fetching profile for user ID:', req.user._id, '| Role in memory:', req.user.role);
     
     const userResponse = {
       _id: req.user._id,
@@ -105,11 +105,11 @@ exports.getMe = async (req, res) => {
       createdAt: req.user.createdAt
     };
     
-    console.log('✓ GETME: Returning user with role:', userResponse.role);
+    console.log('[OK] GETME: Returning user with role:', userResponse.role);
     
     successResponse(res, userResponse);
   } catch (error) {
-    console.error('❌ GETME ERROR:', error.message);
+    console.error('[ERROR] GETME ERROR:', error.message);
     errorResponse(res, error.message, 500);
   }
 };

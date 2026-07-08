@@ -16,6 +16,7 @@ import { AlertData } from '../types';
 import type { PollutionHotspot } from '../types';
 import { Link } from 'react-router-dom';
 import { isOfficerOrAdmin, isOfficer } from '../utils/role';
+import toast from 'react-hot-toast';
 
 interface DashboardProps {
   reports: PollutionReport[];
@@ -45,11 +46,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [statusOfficer, setStatusOfficer] = useState('');
   const [statusTeam, setStatusTeam] = useState('');
   const [statusSaving, setStatusSaving] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
   const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAlerts().then(setAlerts).catch(() => console.error('Failed to load alerts'));
+    fetchAlerts(token).then(setAlerts).catch(() => console.error('Failed to load alerts'));
   }, []);
 
   useEffect(() => {
@@ -202,8 +202,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setStatusMunicipal('');
     setStatusOfficer('');
     setStatusTeam('');
-    setStatusError(null);
-    setStatusSuccess(null);
     setIsStatusModalOpen(true);
     try {
       const fullReport = await fetchReportById(selectedReport.id, token);
@@ -219,8 +217,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const handleSaveStatus = async () => {
     if (!selectedReport || !token) return;
     setStatusSaving(true);
-    setStatusError(null);
-    setStatusSuccess(null);
 
     try {
       const data: { municipalStatus?: string; assignedOfficerName?: string; assignedTeam?: string } = {};
@@ -242,11 +238,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (result.municipalStatus) changedParts.push(result.municipalStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
       if (data.assignedOfficerName) changedParts.push(`Officer: ${data.assignedOfficerName}`);
       if (data.assignedTeam) changedParts.push(`Team: ${data.assignedTeam}`);
+      
+      toast.success(`Report updated — ${changedParts.join(', ') || 'Changes saved'}`, { id: 'status-update-success' });
       setStatusSuccess(`Report updated — ${changedParts.join(', ') || 'Changes saved'}`);
+      setTimeout(() => setStatusSuccess(null), 4000);
       setIsStatusModalOpen(false);
       setIsModalOpen(false);
     } catch (error) {
-      setStatusError(error instanceof Error ? error.message : 'Failed to update status');
+      toast.error(error instanceof Error ? error.message : 'Failed to update status', { id: 'status-update-error' });
     } finally {
       setStatusSaving(false);
     }
@@ -799,11 +798,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         }
       >
-        {statusError && (
-          <div className="mb-4">
-            <AlertBanner type="danger" message={statusError} onClose={() => setStatusError(null)} />
-          </div>
-        )}
+
 
         {selectedReport && (
           <div className="space-y-6">

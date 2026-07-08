@@ -15,22 +15,22 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    console.log('🔑 AUTH MIDDLEWARE: JWT decoded - userId:', decoded.userId, '| role in JWT:', decoded.role);
+    console.log('[KEY] AUTH MIDDLEWARE: JWT decoded - userId:', decoded.userId, '| role in JWT:', decoded.role);
     
     // Use userId from JWT (or fallback to id for backward compatibility)
     const userId = decoded.userId || decoded.id;
     
     req.user = await User.findById(userId);
-    console.log('🔑 AUTH MIDDLEWARE: User fetched from DB - userId:', req.user?._id, '| role in DB:', req.user?.role);
+    console.log('[KEY] AUTH MIDDLEWARE: User fetched from DB - userId:', req.user?._id, '| role in DB:', req.user?.role);
 
     if (!req.user) {
-      console.warn('⚠️ AUTH MIDDLEWARE: User not found in database for userId:', userId);
+      console.warn('[WARN] AUTH MIDDLEWARE: User not found in database for userId:', userId);
       return errorResponse(res, 'User not found', 401);
     }
 
     next();
   } catch (error) {
-    console.error('❌ AUTH MIDDLEWARE ERROR:', error.message);
+    console.error('[ERROR] AUTH MIDDLEWARE ERROR:', error.message);
     return errorResponse(res, 'Invalid token', 401);
   }
 };

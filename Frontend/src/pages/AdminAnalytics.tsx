@@ -3,6 +3,9 @@ import { motion } from 'motion/react';
 import { MapPin, Bell, CheckCircle2, Wind, Calendar, BarChart4, PieChart, Activity, TrendingUp, Globe } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '../api/analyze';
+import { AnimatedCounter } from '../components/AnimatedCounter';
+import { SkeletonCard, SkeletonChart } from '../components/Skeleton';
+import toast from 'react-hot-toast';
 
 interface AnalyticsData {
   reports: { totalReports: number; resolvedReports: number; pendingReports: number; inProgressReports: number };
@@ -43,19 +46,28 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ token }) => {
   }, [token]);
 
   if (loading) return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <span className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-        <span className="text-sm text-muted-text">Loading analytics...</span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-left w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SkeletonChart />
+        <SkeletonChart />
       </div>
     </div>
   );
 
-  if (error) return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="p-4 rounded-xl bg-danger/20 border border-danger/40 text-sm text-white">{error}</div>
-    </div>
-  );
+  if (error) {
+    toast.error(error, { id: 'admin-analytics-error' });
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 w-full text-center">
+        <p className="text-muted-text">Failed to load analytics dashboard.</p>
+      </div>
+    );
+  }
 
   if (!data) return null;
 
@@ -85,15 +97,15 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ token }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card, idx) => (
           <motion.div key={card.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
-            className="glass-panel rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all">
+            className="glass-panel rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all hover:-translate-y-1 group">
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[10px] uppercase font-bold text-muted-text tracking-wider">{card.title}</span>
                 <div className="text-3xl font-extrabold text-white mt-1">
-                  {typeof card.value === 'number' ? card.value : card.value}
+                  {typeof card.value === 'number' ? <AnimatedCounter value={card.value} /> : card.value}
                 </div>
               </div>
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} opacity-80`}>
+              <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} opacity-80 group-hover:scale-110 transition-transform`}>
                 <card.icon className="w-5 h-5 text-white" />
               </div>
             </div>
@@ -116,7 +128,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ token }) => {
                   <span className="text-muted-text">{cat.count}</span>
                 </div>
                 <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${(cat.count / maxCategory) * 100}%` }}
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${(cat.count / maxCategory) * 100}%` }} transition={{ duration: 1, delay: 0.2 }}
                     className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" />
                 </div>
               </div>
@@ -150,9 +162,11 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ token }) => {
       {/* Status Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {data.statusStats.map((s) => (
-          <div key={s._id} className="glass-panel rounded-2xl p-5 border border-white/5 text-center">
+          <div key={s._id} className="glass-panel rounded-2xl p-5 border border-white/5 text-center group hover:bg-slate-800/60 transition-colors cursor-default">
             <span className="text-[10px] uppercase font-bold text-muted-text tracking-wider block capitalize">{s._id.replace('_', ' ')}</span>
-            <div className="text-4xl font-extrabold text-white mt-1">{s.count}</div>
+            <div className="text-4xl font-extrabold text-white mt-1 group-hover:scale-110 transition-transform">
+              <AnimatedCounter value={s.count} />
+            </div>
           </div>
         ))}
       </div>

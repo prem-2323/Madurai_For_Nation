@@ -1,5 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faCheckCircle, faDroplet, faFire, faHardHat, faCar, faTrash, faTriangleExclamation,
+  faCircle,
+} from '@fortawesome/free-solid-svg-icons';
 import {
   Sparkles,
   HeartPulse,
@@ -57,29 +62,29 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
   };
 
   const pollutionIcon = (type: string) => {
-    if (type === 'Clean Environment') return '✅';
-    if (type.includes('Water')) return '💧';
-    if (type.includes('Smoke') || type.includes('Burning') || type.includes('Emission')) return '🔥';
-    if (type.includes('Dust') || type.includes('Construction')) return '🏗️';
-    if (type.includes('Vehicle')) return '🚗';
-    if (type.includes('Plastic') || type.includes('Waste')) return '🗑️';
-    return '⚠️';
+    if (type === 'Clean Environment') return <FontAwesomeIcon icon={faCheckCircle} className="text-success w-5 h-5" />;
+    if (type.includes('Water')) return <FontAwesomeIcon icon={faDroplet} className="text-blue-400 w-5 h-5" />;
+    if (type.includes('Smoke') || type.includes('Burning') || type.includes('Emission')) return <FontAwesomeIcon icon={faFire} className="text-orange-500 w-5 h-5" />;
+    if (type.includes('Dust') || type.includes('Construction')) return <FontAwesomeIcon icon={faHardHat} className="text-yellow-500 w-5 h-5" />;
+    if (type.includes('Vehicle')) return <FontAwesomeIcon icon={faCar} className="text-sky-400 w-5 h-5" />;
+    if (type.includes('Plastic') || type.includes('Waste')) return <FontAwesomeIcon icon={faTrash} className="text-gray-400 w-5 h-5" />;
+    return <FontAwesomeIcon icon={faTriangleExclamation} className="text-yellow-500 w-5 h-5" />;
   };
 
   const getAqiBadge = (level: string) => {
     switch (level) {
       case 'Good':
-        return { emoji: '🟢', label: 'Good', classes: 'text-success border-success/30 bg-success/10' };
+        return { icon: <FontAwesomeIcon icon={faCircle} className="text-success w-3 h-3" />, label: 'Good', classes: 'text-success border-success/30 bg-success/10' };
       case 'Fair':
-        return { emoji: '🟡', label: 'Fair', classes: 'text-amber-300 border-amber-300/30 bg-amber-300/10' };
+        return { icon: <FontAwesomeIcon icon={faCircle} className="text-amber-300 w-3 h-3" />, label: 'Fair', classes: 'text-amber-300 border-amber-300/30 bg-amber-300/10' };
       case 'Moderate':
-        return { emoji: '🟠', label: 'Moderate', classes: 'text-orange-400 border-orange-400/30 bg-orange-400/10' };
+        return { icon: <FontAwesomeIcon icon={faCircle} className="text-orange-400 w-3 h-3" />, label: 'Moderate', classes: 'text-orange-400 border-orange-400/30 bg-orange-400/10' };
       case 'Poor':
-        return { emoji: '🔴', label: 'Poor', classes: 'text-orange-500 border-orange-500/30 bg-orange-500/10' };
+        return { icon: <FontAwesomeIcon icon={faCircle} className="text-orange-500 w-3 h-3" />, label: 'Poor', classes: 'text-orange-500 border-orange-500/30 bg-orange-500/10' };
       case 'Very Poor':
-        return { emoji: '🟣', label: 'Very Poor', classes: 'text-purple-400 border-purple-400/30 bg-purple-400/10' };
+        return { icon: <FontAwesomeIcon icon={faCircle} className="text-purple-400 w-3 h-3" />, label: 'Very Poor', classes: 'text-purple-400 border-purple-400/30 bg-purple-400/10' };
       default:
-        return { emoji: '⚪', label: level || 'Unknown', classes: 'text-muted-text border-white/5 bg-slate-800/60' };
+        return { icon: <FontAwesomeIcon icon={faCircle} className="text-muted-text w-3 h-3" />, label: level || 'Unknown', classes: 'text-muted-text border-white/5 bg-slate-800/60' };
     }
   };
 
@@ -163,16 +168,30 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
             className="space-y-4"
           >
             {imageUrl && (
-              <div className="rounded-xl overflow-hidden border border-white/10 h-28 bg-slate-950/80">
-                <img src={imageUrl} alt="Analyzed" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="relative rounded-xl overflow-hidden border border-white/10 h-28 bg-slate-950/80 group">
+                <img src={imageUrl} alt="Analyzed" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" referrerPolicy="no-referrer" />
+                
+                {/* Scanning Laser Effect Overlay */}
+                <motion.div
+                  initial={{ top: '-10%' }}
+                  animate={{ top: '110%' }}
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: "linear",
+                    repeatDelay: 1
+                  }}
+                  className="absolute left-0 right-0 h-0.5 bg-secondary/80 shadow-[0_0_15px_rgba(34,197,94,0.8)] z-10"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/5 to-transparent opacity-50 pointer-events-none" />
               </div>
             )}
 
             <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/40 p-4 rounded-xl border border-white/5">
               <div>
                 <span className="text-[10px] font-bold text-muted-text block uppercase tracking-wider">Pollution Type</span>
-                <span className="text-sm font-extrabold text-white flex items-center gap-2">
-                  <span>{pollutionIcon(result.pollutionType)}</span>
+                  <span className="text-sm font-extrabold text-white flex items-center gap-2">
+                  {pollutionIcon(result.pollutionType)}
                   {result.pollutionType}
                 </span>
               </div>
@@ -188,13 +207,20 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
                   <span className="text-[10px] font-bold uppercase text-muted-text">Confidence</span>
                 </div>
                 <span className="text-base font-extrabold text-white">{result.confidence}%</span>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div className="relative w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${result.confidence}%` }}
-                    transition={{ duration: 1, delay: 0.2 }}
-                    className="h-full bg-gradient-to-r from-secondary to-blue-500 rounded-full"
-                  />
+                    transition={{ duration: 1, delay: 0.2, type: 'spring', stiffness: 50 }}
+                    className="h-full bg-gradient-to-r from-secondary to-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)] relative"
+                  >
+                    {/* Inner moving highlight */}
+                    <motion.div 
+                      animate={{ x: ['-100%', '200%'] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    />
+                  </motion.div>
                 </div>
               </div>
 
@@ -259,7 +285,7 @@ export const AIResultCard: React.FC<AIResultCardProps> = ({
                   <div>
                     <span className="text-[10px] uppercase font-bold text-muted-text">Live AQI</span>
                     <div className={`mt-2 inline-flex items-center gap-2 text-sm font-bold px-3 py-2 rounded-full border ${getAqiBadge(airQuality.aqiLevel).classes}`}>
-                      {getAqiBadge(airQuality.aqiLevel).emoji} {getAqiBadge(airQuality.aqiLevel).label}
+                      {getAqiBadge(airQuality.aqiLevel).icon} {getAqiBadge(airQuality.aqiLevel).label}
                     </div>
                   </div>
                   <div className="text-right">

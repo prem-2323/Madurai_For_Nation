@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircle, faBell, faLocationDot, faCalendar, faFire, faBullseye, faGlobe, faChartLine, faRobot, faTruck } from '@fortawesome/free-solid-svg-icons';
 import { fetchAlerts, updateAlertStatus } from '../api/alerts';
 import type { AlertData } from '../types';
 import { isOfficerOrAdmin } from '../utils/role';
+import { SkeletonCard } from '../components/Skeleton';
+import toast from 'react-hot-toast';
 
 interface AlertsProps {
   token?: string | null;
@@ -20,10 +24,12 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
   const loadAlerts = async () => {
     setLoading(true);
     try {
-      const data = await fetchAlerts();
+      const data = await fetchAlerts(token);
       setAlerts(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load alerts');
+      const msg = err instanceof Error ? err.message : 'Failed to load alerts';
+      setError(msg);
+      toast.error(msg, { id: 'alerts-fetch-error' });
     } finally {
       setLoading(false);
     }
@@ -33,8 +39,9 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
     try {
       const updated = await updateAlertStatus(id, newStatus, token);
       setAlerts((prev) => prev.map((a) => (a._id === id ? updated : a)));
+      toast.success(`Alert status updated to ${newStatus}`, { id: 'alert-status-update' });
     } catch (err) {
-      alert('Failed to update alert status');
+      toast.error('Failed to update alert status', { id: 'alert-status-error' });
     }
   };
 
@@ -49,22 +56,22 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
     return { critical, high, medium, resolved };
   }, [alerts]);
 
-  const getPriorityEmoji = (p: string) => {
+  const getPriorityIcon = (p: string) => {
     switch(p) {
-      case 'Critical': return '🔴';
-      case 'High': return '🟠';
-      case 'Medium': return '🟡';
-      case 'Low': return '🟢';
-      default: return '⚪';
+      case 'Critical': return <FontAwesomeIcon icon={faCircle} className="text-red-500 w-4 h-4" />;
+      case 'High': return <FontAwesomeIcon icon={faCircle} className="text-orange-500 w-4 h-4" />;
+      case 'Medium': return <FontAwesomeIcon icon={faCircle} className="text-yellow-500 w-4 h-4" />;
+      case 'Low': return <FontAwesomeIcon icon={faCircle} className="text-green-500 w-4 h-4" />;
+      default: return <FontAwesomeIcon icon={faCircle} className="text-gray-400 w-4 h-4" />;
     }
   };
 
-  const getStatusEmoji = (s: string) => {
+  const getStatusIcon = (s: string) => {
     switch(s) {
-      case 'Pending': return '🟡';
-      case 'In Progress': return '🔵';
-      case 'Resolved': return '🟢';
-      default: return '⚪';
+      case 'Pending': return <FontAwesomeIcon icon={faCircle} className="text-yellow-500 w-4 h-4" />;
+      case 'In Progress': return <FontAwesomeIcon icon={faCircle} className="text-blue-500 w-4 h-4" />;
+      case 'Resolved': return <FontAwesomeIcon icon={faCircle} className="text-green-500 w-4 h-4" />;
+      default: return <FontAwesomeIcon icon={faCircle} className="text-gray-400 w-4 h-4" />;
     }
   };
 
@@ -73,24 +80,28 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
       {/* ASCII Header */}
       <div className="bg-slate-950 p-6 rounded-lg border border-white/10 text-secondary whitespace-pre-wrap flex justify-center text-center shadow-lg">
         {`+--------------------------------------------------------------+
-|                 🚨 MUNICIPAL ALERT CENTER                    |
+|           `}<FontAwesomeIcon icon={faBell} className="inline w-5 h-5 text-red-400" />{` MUNICIPAL ALERT CENTER         |
 |  AI-generated emergency alerts for city authorities          |
 +--------------------------------------------------------------+`}
       </div>
 
       {/* Summary Metrics */}
       <div className="flex flex-wrap gap-6 text-lg font-bold">
-        <span>🔴 Critical Alerts: {metrics.critical}</span>
-        <span>🟠 High Alerts: {metrics.high}</span>
-        <span>🟡 Medium Alerts: {metrics.medium}</span>
-        <span>🟢 Resolved: {metrics.resolved}</span>
+        <span><FontAwesomeIcon icon={faCircle} className="text-red-500 w-3 h-3" /> Critical Alerts: {metrics.critical}</span>
+        <span><FontAwesomeIcon icon={faCircle} className="text-orange-500 w-3 h-3" /> High Alerts: {metrics.high}</span>
+        <span><FontAwesomeIcon icon={faCircle} className="text-yellow-500 w-3 h-3" /> Medium Alerts: {metrics.medium}</span>
+        <span><FontAwesomeIcon icon={faCircle} className="text-green-500 w-3 h-3" /> Resolved: {metrics.resolved}</span>
       </div>
 
       <hr className="border-white/10 my-8" />
 
       {/* Alerts List */}
       {loading ? (
-        <div className="text-center text-muted-text">Loading alerts...</div>
+        <div className="space-y-6">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       ) : error ? (
         <div className="text-center text-danger">{error}</div>
       ) : alerts.length === 0 ? (
@@ -98,10 +109,10 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
       ) : (
         <div className="space-y-8">
           {alerts.map((alert, index) => (
-            <div key={alert._id} className="bg-slate-900 border border-white/10 rounded-lg p-6 shadow-md">
+            <div key={alert._id} className="glass-panel border border-white/10 rounded-lg p-6 shadow-md transition-all">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-xl font-bold text-white">
-                  🚨 ALERT #{String(index + 1).padStart(3, '0')}
+                  <FontAwesomeIcon icon={faBell} className="text-red-400 w-5 h-5" /> ALERT #{String(index + 1).padStart(3, '0')}
                 </span>
                 <span className="text-lg font-bold tracking-widest uppercase">
                   [{alert.priority}]
@@ -111,38 +122,38 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
               <div className="space-y-4 text-sm">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <span className="text-muted-text block mb-1">📍 Location</span>
+                    <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faLocationDot} className="w-3 h-3" /> Location</span>
                     <span className="text-white font-semibold text-base">{alert.location}</span>
                   </div>
                   <div>
-                    <span className="text-muted-text block mb-1">🗓 Time</span>
+                    <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faCalendar} className="w-3 h-3" /> Time</span>
                     <span className="text-white font-semibold text-base">{new Date(alert.createdAt).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-muted-text block mb-1">🔥 Pollution Type</span>
+                    <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faFire} className="w-3 h-3" /> Pollution Type</span>
                     <span className="text-white font-semibold text-base">{alert.pollutionType}</span>
                   </div>
                   <div>
-                    <span className="text-muted-text block mb-1">🎯 Severity</span>
+                    <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faBullseye} className="w-3 h-3" /> Severity</span>
                     <span className="text-white font-semibold text-base">{alert.severity}%</span>
                   </div>
                   <div>
-                    <span className="text-muted-text block mb-1">🌍 Current AQI</span>
+                    <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faGlobe} className="w-3 h-3" /> Current AQI</span>
                     <span className="text-white font-semibold text-base">{alert.aqi}</span>
                   </div>
                   <div>
-                    <span className="text-muted-text block mb-1">📈 Predicted AQI</span>
+                    <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faChartLine} className="w-3 h-3" /> Predicted AQI</span>
                     <span className="text-white font-semibold text-base">{alert.predictedAQI}</span>
                   </div>
                 </div>
 
                 <div className="mt-4 bg-slate-950 p-4 rounded-md border border-white/5">
-                  <span className="text-muted-text block mb-1">🤖 AI Reason</span>
+                  <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faRobot} className="w-3 h-3" /> AI Reason</span>
                   <span className="text-white font-semibold">{alert.reason}</span>
                 </div>
 
                 <div className="mt-4">
-                  <span className="text-muted-text block mb-1">🚒 Suggested Action</span>
+                  <span className="text-muted-text block mb-1"><FontAwesomeIcon icon={faTruck} className="w-3 h-3" /> Suggested Action</span>
                   <ul className="text-secondary font-semibold list-disc pl-5">
                     <li>{alert.suggestedAction}</li>
                   </ul>
@@ -150,7 +161,7 @@ export const Alerts: React.FC<AlertsProps> = ({ token, user }) => {
 
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/10">
                   <span className="text-muted-text font-bold">Status:</span>
-                  <span className="font-bold text-lg">{getStatusEmoji(alert.status)} {alert.status}</span>
+                  <span className="font-bold text-lg flex items-center gap-1">{getStatusIcon(alert.status)} {alert.status}</span>
                 </div>
 
                 <div className="flex gap-4 mt-6">

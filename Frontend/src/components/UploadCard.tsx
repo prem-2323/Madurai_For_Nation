@@ -209,12 +209,21 @@ export const UploadCard: React.FC<UploadCardProps> = ({
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={triggerFileSelect}
-                  className={`w-full h-64 border-2 border-dashed rounded-xl cursor-pointer flex flex-col items-center justify-center text-center p-6 transition-all duration-300 ${
+                  className={`w-full h-64 border-2 border-dashed rounded-xl cursor-pointer flex flex-col items-center justify-center text-center p-6 transition-all duration-300 relative overflow-hidden group ${
                     isDragging
-                      ? 'border-secondary bg-secondary/5 scale-98 shadow-lg shadow-secondary/5'
-                      : 'border-white/10 hover:border-primary/50 hover:bg-slate-800/40'
+                      ? 'border-secondary bg-secondary/5 scale-98 shadow-[0_0_30px_rgba(34,197,94,0.15)]'
+                      : 'border-white/10 hover:border-primary/50 hover:bg-slate-800/40 hover:shadow-[0_0_20px_rgba(22,163,74,0.05)]'
                   }`}
                 >
+                  {/* Subtle radiating glow when dragging */}
+                  {isDragging && (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: [0.8, 1.2, 0.8], opacity: [0, 0.5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="absolute inset-0 bg-gradient-to-t from-secondary/20 to-transparent pointer-events-none rounded-xl"
+                    />
+                  )}
                   <input
                     type="file"
                     ref={fileInputRef}

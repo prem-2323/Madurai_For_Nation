@@ -86,7 +86,7 @@ export const MapPage: React.FC<MapPageProps> = ({ reports: fallbackReports = [],
       <PollutionMap reports={reports} hotspots={hotspots} loading={loading} error={error} onRefresh={loadReports} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-5 rounded-2xl bg-card-dark border border-slate-800 space-y-2">
+        <div className="p-5 rounded-2xl glass-panel border border-slate-800 space-y-2">
           <span className="text-xs font-bold text-white block">Citizen Reports → Map</span>
           <p className="text-xs text-muted-text leading-relaxed">
             Every report submitted via photo upload is analyzed by Gemini AI, enriched with OpenWeather AQI
@@ -94,7 +94,7 @@ export const MapPage: React.FC<MapPageProps> = ({ reports: fallbackReports = [],
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-card-dark border border-slate-800 space-y-2">
+        <div className="p-5 rounded-2xl glass-panel border border-slate-800 space-y-2">
           <span className="text-xs font-bold text-white block">Severity Color Coding</span>
           <p className="text-xs text-muted-text leading-relaxed">
             Green markers indicate low-risk pollution, yellow for medium severity, and red for high or
@@ -102,7 +102,7 @@ export const MapPage: React.FC<MapPageProps> = ({ reports: fallbackReports = [],
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-card-dark border border-slate-800 space-y-2">
+        <div className="p-5 rounded-2xl glass-panel border border-slate-800 space-y-2">
           <span className="text-xs font-bold text-white block">Hotspot Detection Engine</span>
           <p className="text-xs text-muted-text leading-relaxed">
             Hotspots are automatically clustered from reports in the last 24 hours and shown as semi-transparent

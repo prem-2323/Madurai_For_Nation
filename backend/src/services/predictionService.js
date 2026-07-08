@@ -44,11 +44,11 @@ function classifyTrend(currentAQI, predictedAQI) {
 function getTrendArrow(trend) {
   switch (trend) {
     case 'Increasing':
-      return '⬆';
+      return 'arrow-up';
     case 'Improving':
-      return '⬇';
+      return 'arrow-down';
     default:
-      return '➡';
+      return 'arrow-right';
   }
 }
 

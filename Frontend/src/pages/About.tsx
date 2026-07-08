@@ -87,7 +87,7 @@ export const About: React.FC = () => {
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-            <div className="p-4 bg-card-dark border border-slate-800 rounded-2xl space-y-2">
+            <div className="p-4 glass-panel border border-slate-800 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
                 <Globe className="w-4 h-4 text-secondary" /> Our Mission
               </span>
@@ -95,7 +95,7 @@ export const About: React.FC = () => {
                 To establish a high-resolution, hyperlocal mesh of environmental awareness that empowers community reporting and automates municipal remediation workflows.
               </p>
             </div>
-            <div className="p-4 bg-card-dark border border-slate-800 rounded-2xl space-y-2">
+            <div className="p-4 glass-panel border border-slate-800 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-primary flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-primary" /> Our Vision
               </span>
@@ -108,7 +108,7 @@ export const About: React.FC = () => {
 
         <div className="lg:col-span-5 flex justify-center">
           {/* Stylized Brand Badge Panel */}
-          <div className="w-full max-w-[360px] p-6 rounded-3xl bg-card-dark border border-slate-800 shadow-xl relative overflow-hidden flex flex-col justify-between h-80">
+          <div className="w-full max-w-[360px] p-6 rounded-3xl glass-panel border border-slate-800 shadow-xl relative overflow-hidden flex flex-col justify-between h-80">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-bl-full pointer-events-none" />
             
             <span className="text-[10px] font-mono text-muted-text">NODE_CREDITS //</span>
@@ -141,7 +141,7 @@ export const About: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {techStack.map((tech) => (
-            <div key={tech.title} className="p-6 rounded-2xl bg-card-dark border border-slate-800 hover:border-secondary/30 transition-all shadow-lg text-left">
+            <div key={tech.title} className="p-6 rounded-2xl glass-panel border border-slate-800 hover:border-secondary/30 transition-all shadow-lg text-left">
               <span className="text-sm font-bold text-white block">{tech.title}</span>
               <p className="text-xs text-muted-text mt-2 leading-relaxed">{tech.desc}</p>
             </div>
@@ -159,7 +159,7 @@ export const About: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {team.map((member) => (
-            <div key={member.name} className="p-6 rounded-2xl bg-card-dark/60 border border-slate-800 space-y-4">
+            <div key={member.name} className="p-6 rounded-2xl glass-panel border border-slate-800 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center text-white font-extrabold text-lg">
                   {member.name.split(' ').map((n) => n[0]).join('')}
@@ -223,7 +223,7 @@ export const About: React.FC = () => {
       </section>
 
       {/* 5. CONTACT & TICKETING SECTION */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 bg-card-dark/40 rounded-3xl border border-slate-800 p-8 relative overflow-hidden shadow-xl">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 glass-panel rounded-3xl border border-slate-800 p-8 relative overflow-hidden shadow-xl">
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-secondary/5 rounded-tl-full pointer-events-none" />
         
         {/* Contact Info column */}

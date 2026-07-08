@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Camera, Sparkles, ClipboardList, Map, Wind, TrendingUp, UserCircle } from 'lucide-react';
 import type { PollutionReport, ReportStatus } from '../types';
 import { getUserRole } from '../utils/role';
@@ -27,13 +27,23 @@ const cards = [
 
 export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({ user }) => {
   const role = getUserRole(user);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>, title: string) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-left">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">Citizen Dashboard</p>
-          <h1 className="text-3xl font-extrabold text-white">Welcome back, {user?.name?.split(' ')[0] || 'citizen'}</h1>
+          <h1 className="text-3xl font-extrabold text-white">Welcome back, {user?.name?.split(' ')?.[0] || 'Citizen'}</h1>
           <p className="text-sm text-muted-text">Your role is {role || 'citizen'} and your tools are tailored for reporting and tracking pollution incidents.</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-text">
@@ -46,22 +56,44 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({ user }) => {
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <motion.div key={card.title} whileHover={{ y: -4, scale: 1.01 }}>
-              <Link to={card.path} className="block h-full rounded-2xl border border-white/5 bg-slate-900/80 p-5 shadow-lg shadow-slate-950/20 hover:border-primary/30 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="rounded-xl bg-primary/10 p-2 text-primary">
+            <motion.div key={card.title} whileHover={{ y: -4, scale: 1.01 }} className="h-full">
+              <Link 
+                to={card.path} 
+                className="relative block h-full rounded-2xl border border-white/5 glass-panel p-5 shadow-lg overflow-hidden group"
+                onMouseMove={(e) => handleMouseMove(e, card.title)}
+                onMouseEnter={() => setHoveredCard(card.title)}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                {/* Spotlight effect */}
+                <AnimatePresence>
+                  {hoveredCard === card.title && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="pointer-events-none absolute inset-0 z-0"
+                      style={{
+                        background: `radial-gradient(300px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(14, 165, 233, 0.1), transparent 40%)`,
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="rounded-xl bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
                     <Icon className="w-5 h-5" />
                   </div>
                 </div>
-                <h2 className="mt-4 text-lg font-semibold text-white">{card.title}</h2>
-                <p className="mt-2 text-sm text-muted-text">{card.description}</p>
+                <h2 className="relative z-10 mt-4 text-lg font-semibold text-white">{card.title}</h2>
+                <p className="relative z-10 mt-2 text-sm text-muted-text">{card.description}</p>
               </Link>
             </motion.div>
           );
         })}
       </div>
 
-      <div className="rounded-2xl border border-white/5 bg-slate-900/70 p-6">
+      <div className="rounded-2xl border border-white/5 glass-panel p-6">
         <div className="flex items-center gap-2 text-primary">
           <ClipboardList className="w-5 h-5" />
           <h2 className="text-lg font-semibold text-white">Citizen actions</h2>

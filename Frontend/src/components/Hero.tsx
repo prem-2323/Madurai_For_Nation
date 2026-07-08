@@ -10,7 +10,34 @@ export const Hero: React.FC = () => {
       <div className="absolute top-1/4 left-1/10 w-96 h-96 rounded-full bg-primary/10 blur-3xl -z-10 pointer-events-none" />
       <div className="absolute top-1/3 right-1/10 w-80 h-80 rounded-full bg-secondary/10 blur-3xl -z-10 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute bg-white/20 rounded-full"
+            style={{
+              width: Math.random() * 4 + 1 + 'px',
+              height: Math.random() * 4 + 1 + 'px',
+              top: Math.random() * 100 + '%',
+              left: Math.random() * 100 + '%',
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.2, 0.8, 0.2],
+              scale: [1, 1.5, 1],
+            }}
+            transition={{
+              duration: Math.random() * 3 + 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           {/* Left Hero Text Panel */}
@@ -24,7 +51,7 @@ export const Hero: React.FC = () => {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-white/10 text-xs font-semibold text-secondary"
             >
               <Sparkles className="w-3.5 h-3.5 text-secondary animate-pulse" />
-              <span>Version 2.4 Municipal Air Intelligence</span>
+              <span>AI-Powered Municipal Air Intelligence</span>
             </motion.div>
 
             {/* Main Headline */}
@@ -34,8 +61,8 @@ export const Hero: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight"
             >
-              AI-Powered <br />
-              <span className="text-gradient">Hyperlocal Pollution</span> Detection
+              Protect Your City.<br />
+              <span className="text-gradient">One Report. One Click.</span>
             </motion.h1>
 
             {/* Subtitle */}
@@ -45,7 +72,7 @@ export const Hero: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-text leading-relaxed max-w-2xl"
             >
-              Help citizens and municipalities identify pollution hotspots using AI image analysis and real-time reporting. Seamlessly bridge community reports with responsive urban clean-up workflows.
+              AI Detects Pollution Before It Becomes Dangerous. Citizens report, AI analyzes, and municipalities act — all in real-time.
             </motion.p>
 
             {/* Action Buttons */}
@@ -76,8 +103,12 @@ export const Hero: React.FC = () => {
           {/* Right Hero Illustration */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            animate={{ opacity: 1, scale: 1, y: [0, -10, 0] }}
+            transition={{
+              opacity: { duration: 0.8, delay: 0.2 },
+              scale: { duration: 0.8, delay: 0.2 },
+              y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
+            }}
             className="lg:col-span-5 relative flex justify-center"
           >
             {/* Ambient Outer Glow */}
@@ -101,10 +132,12 @@ export const Hero: React.FC = () => {
                 {/* Radar Scanline */}
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
-                  className="absolute inset-0 border-r border-primary/25 origin-center pointer-events-none"
+                  transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
+                  className="absolute inset-0 origin-center pointer-events-none z-20"
                   style={{
-                    background: 'conic-gradient(from 0deg, transparent 50%, rgba(22, 163, 74, 0.1) 90%, rgba(22, 163, 74, 0.25) 100%)',
+                    background: 'conic-gradient(from 0deg, transparent 40%, rgba(22, 163, 74, 0.15) 85%, rgba(22, 163, 74, 0.4) 100%)',
+                    borderRight: '2px solid rgba(22, 163, 74, 0.6)',
+                    boxShadow: '2px 0 10px rgba(22, 163, 74, 0.5)',
                   }}
                 />
 
@@ -165,9 +198,13 @@ export const Hero: React.FC = () => {
               {/* Small floating card: AI Detected notification */}
               <motion.div
                 initial={{ opacity: 0, x: 20, y: 10 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-                className="absolute top-28 right-2 max-w-[180px] p-2.5 rounded-xl bg-slate-900/95 border border-red-500/30 shadow-lg shadow-red-500/5 flex gap-2 items-start"
+                animate={{ opacity: 1, x: 0, y: [-5, 5, -5] }}
+                transition={{ 
+                  opacity: { duration: 0.6, delay: 0.8 },
+                  x: { duration: 0.6, delay: 0.8 },
+                  y: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 } 
+                }}
+                className="absolute top-28 right-2 max-w-[180px] p-2.5 rounded-xl bg-slate-900/95 border border-red-500/30 shadow-lg shadow-red-500/5 flex gap-2 items-start z-30"
               >
                 <div className="p-1 bg-danger/25 rounded text-danger">
                   <ShieldAlert className="w-4 h-4" />
