@@ -6,7 +6,8 @@ import { AIResultCard } from '../components/AIResultCard';
 import { AirQualityCard } from '../components/AirQualityCard';
 import {
   MapPin, Navigation, Sparkles, Send, RefreshCw, AlertCircle, Check,
-  Upload, Cpu, Map, FileCheck,
+  Upload, Cpu, Map, FileCheck, Search, Car, BarChart3, AlertTriangle, Wind, HeartPulse,
+  HardHat, Factory, Leaf,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PollutionReport, AIAnalysisResult, ReportStatus, AirQualityData } from '../types';
@@ -14,12 +15,12 @@ import { CATEGORIES } from '../data';
 import { analyzePollutionImage, API_BASE_URL, imageUrlToFile } from '../api/analyze';
 
 const SCAN_MESSAGES = [
-  { text: 'Scanning smoke particles...', icon: '🔍' },
-  { text: 'Detecting vehicles and emissions...', icon: '🚗' },
-  { text: 'Analyzing pollution density...', icon: '📊' },
-  { text: 'Checking severity levels...', icon: '⚠️' },
-  { text: 'Estimating AQI impact...', icon: '🌬️' },
-  { text: 'Generating health recommendations...', icon: '🏥' },
+  { text: 'Scanning smoke particles...', icon: <Search className="inline-block w-3.5 h-3.5 text-secondary" /> },
+  { text: 'Detecting vehicles and emissions...', icon: <Car className="inline-block w-3.5 h-3.5 text-secondary" /> },
+  { text: 'Analyzing pollution density...', icon: <BarChart3 className="inline-block w-3.5 h-3.5 text-secondary" /> },
+  { text: 'Checking severity levels...', icon: <AlertTriangle className="inline-block w-3.5 h-3.5 text-warning" /> },
+  { text: 'Estimating AQI impact...', icon: <Wind className="inline-block w-3.5 h-3.5 text-secondary" /> },
+  { text: 'Generating health recommendations...', icon: <HeartPulse className="inline-block w-3.5 h-3.5 text-secondary" /> },
 ];
 
 interface ReportProps { onAddReport: (report: PollutionReport) => void; token?: string | null; }
@@ -217,7 +218,10 @@ export const Report: React.FC<ReportProps> = ({ onAddReport, token }) => {
                     className="p-2 rounded-xl bg-slate-900/60 border border-white/5 hover:border-secondary/30 hover:bg-slate-800/80 transition-all text-center group"
                   >
                     <div className="text-lg mb-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                      {s.category === 'Construction Dust' ? '🏗️' : s.category === 'Industrial Emissions' ? '🏭' : s.category === 'Exhaust & Traffic Smog' ? '🚗' : '🌿'}
+                      {s.category === 'Construction Dust' ? <HardHat className="inline-block w-5 h-5 text-primary" />
+                        : s.category === 'Industrial Emissions' ? <Factory className="inline-block w-5 h-5 text-warning" />
+                        : s.category === 'Exhaust & Traffic Smog' ? <Car className="inline-block w-5 h-5 text-secondary" />
+                        : <Leaf className="inline-block w-5 h-5 text-emerald-400" />}
                     </div>
                     <span className="text-[8px] font-bold text-white block leading-tight truncate">{s.loc.split(',')[0]}</span>
                     <span className="text-[7px] text-muted-text truncate block">{s.loc.split(',')[1]?.trim() || ''}</span>
