@@ -44,34 +44,44 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     navigate(getPostLoginPath(user), { replace: true });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const authenticate = async (credentialEmail: string, credentialPassword: string, credentialRole: 'citizen' | 'officer', credentialName: string) => {
     setError('');
     setSuccess('');
     setIsLoading(true);
 
     try {
       if (isLogin) {
-        console.log('[AUTH] Submitting login for email:', email);
-        const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-          email,
-          password
-        });
-        const { user, token } = response.data.data;
-        console.log('[AUTH] Login response - user role:', user?.role);
-        onLoginSuccess(user, token);
-        toast.success(`Welcome back, ${user.name || 'User'}!`, { id: 'login-success' });
-        navigateByRole(user);
+        try {
+          console.log('[AUTH] Attempting quick login for email:', credentialEmail);
+          const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+            email: credentialEmail,
+            password: credentialPassword
+          });
+          const { user, token } = response.data.data;
+          onLoginSuccess(user, token);
+          toast.success(`Welcome back, ${user.name || 'User'}!`, { id: 'login-success' });
+          navigateByRole(user);
+        } catch (loginError: any) {
+          const registerResponse = await axios.post(`${API_BASE_URL}/api/auth/register`, {
+            name: credentialName,
+            email: credentialEmail,
+            password: credentialPassword,
+            role: credentialRole
+          });
+          const { user, token } = registerResponse.data.data;
+          onLoginSuccess(user, token);
+          toast.success(`Account created for demo ${credentialRole} access.`, { id: 'register-success' });
+          navigateByRole(user);
+        }
       } else {
-        console.log('[AUTH] Submitting register for email:', email, '| selected role:', role);
+        console.log('[AUTH] Submitting register for email:', credentialEmail, '| selected role:', credentialRole);
         const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
-          name,
-          email,
-          password,
-          role
+          name: credentialName,
+          email: credentialEmail,
+          password: credentialPassword,
+          role: credentialRole
         });
         const { user, token } = response.data.data;
-        console.log('[AUTH] Register response - user role:', user?.role, '| token present:', !!token);
         onLoginSuccess(user, token);
         toast.success(`Account created! Welcome to CleanAir AI.`, { id: 'register-success' });
         navigateByRole(user);
@@ -83,6 +93,28 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await authenticate(email, password, role, name || (role === 'officer' ? 'Officer Demo' : 'Citizen Demo'));
+  };
+
+  const handleQuickSignIn = async (targetRole: 'citizen' | 'officer') => {
+    const demoAccounts = {
+      citizen: { email: 'citizen@madurai4nation.com', password: 'Madurai@2024', name: 'Citizen Demo' },
+      officer: { email: 'officer@madurai4nation.com', password: 'Madurai@2024', name: 'Officer Demo' }
+    } as const;
+
+    const account = demoAccounts[targetRole];
+    setIsLogin(true);
+    setRole(targetRole);
+    setName(account.name);
+    setEmail(account.email);
+    setPassword(account.password);
+    setError('');
+    setSuccess('');
+    await authenticate(account.email, account.password, targetRole, account.name);
   };
 
   return (
@@ -130,6 +162,25 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             }`}
           >
             Register
+          </button>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => handleQuickSignIn('citizen')}
+            disabled={isLoading}
+            className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition-all hover:bg-emerald-500/20 disabled:opacity-50"
+          >
+            Autofill Citizen
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickSignIn('officer')}
+            disabled={isLoading}
+            className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 transition-all hover:bg-sky-500/20 disabled:opacity-50"
+          >
+            Autofill Officer
           </button>
         </div>
 
