@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Menu, X, Wind, Shield, UserCheck, Bell, ChevronDown, Settings, LogOut, User, Github } from 'lucide-react';
+import { Menu, X, Wind, Shield, UserCheck, Bell, ChevronDown, Settings, LogOut, User, Github, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getNavItemsForRole, getUserRole } from '../utils/role';
 import { fetchGeminiUsage, GEMINI_USAGE_UPDATED_EVENT } from '../api/usage';
@@ -115,6 +115,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             </nav>
 
             <div className="hidden md:flex items-center gap-2">
+              <a href="/Proof.pdf" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-muted-text hover:text-white hover:bg-white/5 transition-all">
+                <FileText className="w-3.5 h-3.5" />
+                Proof
+              </a>
+
               <div className="text-[10px] text-muted-text font-medium whitespace-nowrap">
                 {geminiUsageLabel}
               </div>
@@ -244,6 +249,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               </div>
 
               <div className="space-y-3 pt-4 border-t border-slate-800">
+                <a href="/Proof.pdf" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-semibold transition-all">
+                  <FileText className="w-4 h-4" />
+                  Proof
+                </a>
+
                 <div className="text-center text-[10px] text-muted-text font-medium">
                   {geminiUsageLabel}
                 </div>
