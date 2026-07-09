@@ -1,43 +1,99 @@
+const mongoose = require('mongoose');
 const Temp = require('../models/Temp');
 
-const HEARTBEAT_INTERVAL_MS = 20 * 60 * 1000;
-const MAX_DOCS = 3;
+const HEARTBEAT_BATCH_INTERVAL_MS = 60 * 60 * 1000;
+const HEARTBEAT_BATCH_SIZE = 15;
+const HEARTBEAT_WINDOW_MS = 60 * 60 * 1000;
+const MAX_HEARTBEAT_DOCS = 30;
 
-async function insertHeartbeat() {
-  try {
-    await Temp.create({ status: 'alive' });
-    console.log('Heartbeat inserted');
-  } catch (err) {
-    console.error('Heartbeat insert failed:', err.message);
-  }
+function waitForMongoConnection() {
+  return new Promise((resolve, reject) => {
+    if (mongoose.connection.readyState === 1) {
+      resolve();
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      reject(new Error('MongoDB connection timed out while starting heartbeat service'));
+    }, 10000);
+
+    mongoose.connection.once('open', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+
+    mongoose.connection.once('error', (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
 }
 
 async function trimHeartbeats() {
   try {
+    await waitForMongoConnection();
+
     const count = await Temp.countDocuments();
-    if (count > MAX_DOCS) {
-      const docsToDelete = count - MAX_DOCS;
-      const oldest = await Temp.find().sort({ createdAt: 1 }).limit(docsToDelete);
-      if (oldest.length > 0) {
-        const ids = oldest.map((doc) => doc._id);
-        await Temp.deleteMany({ _id: { $in: ids } });
-        console.log('Old heartbeat deleted');
-      }
+    if (count <= MAX_HEARTBEAT_DOCS) {
+      return;
     }
-  } catch (err) {
-    console.error('Heartbeat trim failed:', err.message);
+
+    const docsToDelete = count - MAX_HEARTBEAT_DOCS;
+    const oldest = await Temp.find().sort({ createdAt: 1 }).limit(docsToDelete).select('_id');
+
+    if (oldest.length > 0) {
+      const ids = oldest.map((doc) => doc._id);
+      await Temp.deleteMany({ _id: { $in: ids } });
+      console.log(`[heartbeat] pruned ${ids.length} old record(s) to keep the latest ${MAX_HEARTBEAT_DOCS}`);
+    }
+  } catch (error) {
+    console.error(`[heartbeat] cleanup failed: ${error.message}`);
   }
 }
 
-async function tick() {
-  await insertHeartbeat();
-  await trimHeartbeats();
+async function insertHeartbeat() {
+  try {
+    await waitForMongoConnection();
+
+    const createdAt = new Date();
+    await Temp.create({ status: 'alive', createdAt });
+    console.log(`[heartbeat] inserted record at ${createdAt.toISOString()}`);
+
+    await trimHeartbeats();
+  } catch (error) {
+    console.error(`[heartbeat] insert failed: ${error.message}`);
+  }
+}
+
+async function runHeartbeatBatch() {
+  try {
+    await waitForMongoConnection();
+    console.log(`[heartbeat] starting ${HEARTBEAT_BATCH_SIZE}-record batch`);
+
+    const delays = Array.from({ length: HEARTBEAT_BATCH_SIZE }, () => Math.floor(Math.random() * HEARTBEAT_WINDOW_MS));
+    delays.sort((a, b) => a - b);
+
+    await Promise.all(
+      delays.map(
+        (delay) =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              insertHeartbeat().finally(resolve);
+            }, delay);
+          })
+      )
+    );
+
+    console.log(`[heartbeat] completed ${HEARTBEAT_BATCH_SIZE}-record batch`);
+  } catch (error) {
+    console.error(`[heartbeat] batch failed: ${error.message}`);
+  }
 }
 
 function startHeartbeat() {
-  tick();
-  setInterval(tick, HEARTBEAT_INTERVAL_MS);
-  console.log(`Heartbeat service started (every ${HEARTBEAT_INTERVAL_MS / 60000} min, max ${MAX_DOCS} docs)`);
+  runHeartbeatBatch();
+  setInterval(runHeartbeatBatch, HEARTBEAT_BATCH_INTERVAL_MS);
+  console.log(`[heartbeat] service started; batches every ${HEARTBEAT_BATCH_INTERVAL_MS / 60000} minute(s) and retain up to ${MAX_HEARTBEAT_DOCS} records`);
 }
 
 module.exports = { startHeartbeat };
