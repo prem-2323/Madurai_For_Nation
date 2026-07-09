@@ -4,13 +4,22 @@
 
 A full-stack application that enables citizens to report pollution incidents with AI-powered photo analysis, and provides municipal officers with tools to manage, track, and respond to environmental issues in real-time.
 
-## Proof / Project PDF
+## 📋 Proof & Screenshots
 
-You can view the project proof document here:
+### Project Documentation
+- **[Project Proof Document (PDF)](Frontend/public/Proof.pdf)** — Local copy available in the app
+- **[Full Proof & Screenshots (Google Drive)](https://drive.google.com/file/d/1GB6AWHYrwp3-DCDCv7Cx9pME3hom162f/view?usp=sharing)** — Comprehensive proof with implementation screenshots
 
-- [Open Proof PDF](Frontend/public/Proof.pdf)
+The Proof PDF is also accessible directly from the app navbar in the navigation menu.
 
-This PDF is also accessible from the app navbar.
+### Key Features Demonstrated
+- ✅ Citizen pollution reporting with AI analysis
+- ✅ Real-time hotspot detection and mapping
+- ✅ Municipal officer dashboard and response tracking
+- ✅ Live AQI monitoring and 24-hour predictions
+- ✅ Geospatial pollution clustering
+- ✅ Integration with OpenWeather API
+- ✅ Google Gemini AI-powered image analysis
 
 ## Problem Statement
 
