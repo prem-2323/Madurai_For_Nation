@@ -4,6 +4,14 @@
 
 A full-stack application that enables citizens to report pollution incidents with AI-powered photo analysis, and provides municipal officers with tools to manage, track, and respond to environmental issues in real-time.
 
+## Proof / Project PDF
+
+You can view the project proof document here:
+
+- [Open Proof PDF](Frontend/public/Proof.pdf)
+
+This PDF is also accessible from the app navbar.
+
 ## Problem Statement
 
 City-level air quality apps often miss hyper-local events such as garbage dump fires, industrial clusters, and smog traps at busy junctions because local authorities cannot monitor every street in real time. These small but intense pollution pockets often go unnoticed while directly affecting nearby residents.
