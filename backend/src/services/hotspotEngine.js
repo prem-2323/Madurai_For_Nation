@@ -1,7 +1,13 @@
 const Report = require('../models/Report');
 const Hotspot = require('../models/Hotspot');
 
-const LOOKBACK_HOURS = Number.parseInt(process.env.HOTSPOT_LOOKBACK_HOURS || '', 10) || 72;
+const LOOKBACK_HOURS = (() => {
+  const raw = process.env.HOTSPOT_LOOKBACK_HOURS;
+  if (raw === undefined || raw === '') return 720; // default 30 days
+  const val = Number.parseInt(raw, 10);
+  if (Number.isFinite(val) && val >= 0) return val;
+  return 720;
+})();
 const MIN_REPORTS_PER_HOTSPOT = 2;
 const MIN_RADIUS_METERS = 300;
 const MAX_RADIUS_METERS = 500;
@@ -216,20 +222,25 @@ function calculateHotspot(cluster, configuredRadius) {
 }
 
 async function rebuildHotspots() {
-  const lookbackStart = new Date(Date.now() - LOOKBACK_HOURS * 60 * 60 * 1000);
   const configuredRadius = getConfiguredRadius();
 
   console.log('\n========== HOTSPOT ENGINE DEBUG ==========');
   console.log(`LOOKBACK_HOURS: ${LOOKBACK_HOURS}`);
   console.log(`RADIUS: ${configuredRadius}m`);
   console.log(`MIN_REPORTS_PER_HOTSPOT: ${MIN_REPORTS_PER_HOTSPOT}`);
-  console.log(`Lookback window: ${lookbackStart.toISOString()} to now`);
 
   const totalInDb = await Report.countDocuments({});
   console.log(`\n[STAGE 0] Total reports in MongoDB: ${totalInDb}`);
 
+  const timeFilter = LOOKBACK_HOURS > 0 ? { createdAt: { $gte: new Date(Date.now() - LOOKBACK_HOURS * 60 * 60 * 1000) } } : {};
+  if (timeFilter.createdAt) {
+    console.log(`Lookback window: ${timeFilter.createdAt.$gte.toISOString()} to now`);
+  } else {
+    console.log('Lookback window: ALL (no time limit)');
+  }
+
   const reports = await Report.find({
-    createdAt: { $gte: lookbackStart },
+    ...timeFilter,
     latitude: { $exists: true },
     longitude: { $exists: true },
   }).select('_id latitude longitude category severity AQI confidence createdAt location image');

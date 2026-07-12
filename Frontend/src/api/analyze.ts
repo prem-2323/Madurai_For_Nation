@@ -1,7 +1,7 @@
 import type { AIAnalysisResult, AirQualityData } from '../types';
 import { emitGeminiUsageUpdated } from './usage';
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://madurai-for-nation.onrender.com';
 
 export async function imageUrlToFile(imageUrl: string, filename = 'photo.jpg'): Promise<File> {
   if (imageUrl.startsWith('data:')) {
